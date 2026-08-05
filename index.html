@@ -1,10 +1,63 @@
 <!DOCTYPE html>
-<html>
+<html lang="ar" dir="rtl">
 <head>
-    <title>تطبيقي الأول</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تطبيقي المنظم</title>
+    <style>
+        /* إعدادات الشاشة الكاملة لتوزيع العناصر */
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        /* تنسيق القسم العلوي (أعلى الشاشة) */
+        .top-section {
+            background-color: #4CAF50;
+            color: white;
+            padding: 15px;
+            font-size: 20px;
+        }
+
+        /* تنسيق القسم الأوسط (وسط الشاشة) */
+        .middle-section {
+            flex: 1; /* يأخذ كل المساحة المتبقية في المنتصف */
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 18px;
+        }
+
+        /* تنسيق القسم السفلي (أسفل الشاشة تماماً) */
+        .bottom-section {
+            background-color: #333;
+            color: white;
+            padding: 15px;
+            font-size: 16px;
+        }
+    </style>
 </head>
 <body>
-    <h1>مرحباً بك في تطبيقي الأول!</h1>
-    <p>هذا التطبيق يعمل مباشرة من جيت هوب.</p>
+
+    <!-- قسم أعلى الشاشة -->
+    <div class="top-section">
+        هذا النص يظهر في أعلى الشاشة ⬆️
+    </div>
+
+    <!-- قسم منتصف الشاشة -->
+    <div class="middle-section">
+        <p>هنا محتوى التطبيق الرئيسي في المنتصف 📱</p>
+    </div>
+
+    <!-- قسم أسفل الشاشة -->
+    <div class="bottom-section">
+        هذا النص يظهر في أسفل الشاشة تماماً ⬇️
+    </div>
+
 </body>
 </html>
