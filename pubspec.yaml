@@ -1,5 +1,5 @@
 name: cast2
-description: "Ultimate Web Video Caster App"
+description: "Ultimate Web Video Caster App with Internal Player"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -9,10 +9,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_inappwebview: any
-  video_player: any
-  media_cast: any # المكتبة البديلة الحديثة والمستقرة للبث والكاست
-  file_picker: any
+  flutter_inappwebview: ^6.1.5 # المتصفح الذكي لكشف الفيديو
+  video_player: ^2.9.2         # محرك الفيديو الأساسي
+  chewie: ^1.8.5               # المشغل الداخلي الاحترافي والجميل
+  http: ^1.2.2                 # لإرسال أوامر البث للريسيفرات (DLNA)
+  file_picker: ^8.1.7          # لملفات الهاتف
 
 dev_dependencies:
   flutter_test:
