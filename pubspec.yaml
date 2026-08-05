@@ -13,7 +13,7 @@ dependencies:
   video_player: ^2.9.2         # محرك الفيديو الأساسي
   chewie: ^1.8.5               # المشغل الداخلي الاحترافي والجميل
   http: ^1.2.2                 # لإرسال أوامر البث للريسيفرات (DLNA)
-  file_picker: ^8.2.0          # لملفات الهاتف (محدّثة)
+  file_picker: ^7.0.0          # downgraded to support minSdk 21
 
 dev_dependencies:
   flutter_test:
