@@ -1,5 +1,5 @@
 name: cast2
-description: "Ultimate Web Video Caster App with Internal Player"
+description: "Ultimate Web Video Caster App"
 publish_to: 'none'
 version: 1.0.0+1
 
@@ -9,11 +9,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_inappwebview: ^6.1.5 # المتصفح الذكي لكشف الفيديو
-  video_player: ^2.9.2         # محرك الفيديو الأساسي
-  chewie: ^1.8.5               # المشغل الداخلي الاحترافي والجميل
-  http: ^1.2.2                 # لإرسال أوامر البث للريسيفرات (DLNA)
-  file_picker: ^7.0.0          # downgraded to support minSdk 21
+  flutter_inappwebview: ^6.1.5
+  video_player: ^2.9.2
+  chewie: ^1.8.5
+  http: ^1.2.2
+  file_picker: ^8.1.7 # تم ترقية هذا الإصدار لحذف كود الـ v1 embedding المسبب للخطأ
 
 dev_dependencies:
   flutter_test:
