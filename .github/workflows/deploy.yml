@@ -20,27 +20,27 @@ jobs:
         with:
           channel: 'stable'
 
-      # 1. الخطوة السحرية الجديدة لتهيئة مجلد الأندرويد تلقائياً
+      # تم تعديل هذا الأمر ليجبر فلوتر على قبول الاسم بحروف صغيرة
       - name: Configure Project for Android
-        run: flutter create . --platforms android
+        run: flutter create . --platforms android --project-name cast2
 
       - name: Install dependencies
         run: flutter pub get
 
-      # 2. بناء ملف الـ APK للأندرويد
+      # بناء ملف الـ APK للأندرويد
       - name: Build APK
         run: flutter build apk --release
 
-      # 3. حفظ ملف الـ APK داخل جيت هوب للتحميل
+      # حفظ ملف الـ APK داخل جيت هوب للتحميل
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
-      # 4. تهيئة وبناء نسخة الويب
+      # تم تعديل هذا الأمر أيضاً للويب بنفس الاسم الصحيح
       - name: Configure Project for Web
-        run: flutter create . --platforms web
+        run: flutter create . --platforms web --project-name cast2
 
       - name: Build Flutter Web
         run: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
