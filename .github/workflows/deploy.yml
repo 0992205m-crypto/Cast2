@@ -20,16 +20,20 @@ jobs:
         with:
           channel: 'stable'
 
-      # تم تعديل هذا الأمر ليجبر فلوتر على قبول الاسم بحروف صغيرة
       - name: Configure Project for Android
         run: flutter create . --platforms android --project-name cast2
+
+      # خطوة سحرية لإصلاح مشكلة jcenter() في كل المكتبات تلقائياً قبل البناء
+      - name: Fix Android Repositories (Remove jcenter)
+        run: |
+          find . -name "build.gradle" -type f -exec sed -i 's/jcenter()/mavenCentral()/g' {} +
 
       - name: Install dependencies
         run: flutter pub get
 
-      # بناء ملف الـ APK للأندرويد
+      # بناء ملف الـ APK للأندرويد مع إجبار النظام على تخطي فحص DSL الجديد
       - name: Build APK
-        run: flutter build apk --release
+        run: flutter build apk --release --no-shrink
 
       # حفظ ملف الـ APK داخل جيت هوب للتحميل
       - name: Upload APK Artifact
@@ -38,7 +42,6 @@ jobs:
           name: app-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
-      # تم تعديل هذا الأمر أيضاً للويب بنفس الاسم الصحيح
       - name: Configure Project for Web
         run: flutter create . --platforms web --project-name cast2
 
