@@ -18,7 +18,7 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          channel:  stable 
 
       - name: Configure Project for Android
         run: flutter create . --platforms android --project-name cast2
@@ -26,14 +26,9 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # الأمر القوي والنهائي: الدخول للمجلد المخفي وتطهيره من جينسنتر بالكامل
-      - name: Force Fix All Cached Repositories (Remove jcenter)
-        run: |
-          find /home/runner/.pub-cache/ -name "build.gradle" -type f -exec sed -i 's/jcenter()/mavenCentral()/g' {} +
-
-      # بناء ملف الـ APK للأندرويد
+      # بناء ملف الـ APK للأندرويد مباشرة وبشكل آمن
       - name: Build APK
-        run: flutter build apk --release --no-shrink
+        run: flutter build apk --release
 
       # حفظ ملف الـ APK داخل جيت هوب للتحميل
       - name: Upload APK Artifact
@@ -42,6 +37,7 @@ jobs:
           name: app-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
+      # تهيئة وبناء نسخة الويب
       - name: Configure Project for Web
         run: flutter create . --platforms web --project-name cast2
 
@@ -51,7 +47,7 @@ jobs:
       - name: Upload Web Artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: 'build/web'
+          path:  build/web 
 
   deploy-web:
     needs: build-and-deploy
