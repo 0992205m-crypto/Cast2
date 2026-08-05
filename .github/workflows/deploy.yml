@@ -20,8 +20,29 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Configure Project for Android
-        run: flutter create . --platforms android --project-name cast2
+      - name: Recreate Android project with supported Gradle
+        run: |
+          set -e
+          # create a temporary Flutter app to get a clean android/ layout
+          flutter create -t app temp_app --platforms android --project-name cast2
+
+          # backup current android folder if it exists
+          if [ -d android ]; then mv android android.bak; fi
+
+          # move generated android folder into repo root
+          mv temp_app/android .
+
+          # restore key.properties or keystore if they existed in the backup
+          if [ -f android.bak/key.properties ]; then mv android.bak/key.properties android/ || true; fi
+          if ls android.bak/*.jks 1> /dev/null 2>&1; then mkdir -p android/app && mv android.bak/*.jks android/app/ || true; fi
+
+          # (optional) restore custom native files from backup if you have them
+          # cp -R android.bak/app/src/main/kotlin/com/yourpackage/* android/app/src/main/kotlin/com/yourpackage/ || true
+
+          # cleanup temporary project
+          rm -rf temp_app
+          # keep android.bak for inspection; remove it explicitly if you want
+          # rm -rf android.bak
 
       - name: Install dependencies
         run: flutter pub get
@@ -31,7 +52,7 @@ jobs:
         run: |
           find /home/runner/.pub-cache/ -name "build.gradle" -type f -exec sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' {} +
 
-      # الأمر الصارم والنهائي: إجبار الخادم والمكتبات المخفية بالكامل على استخدام إصدار 36
+      # إجبار المكتبات على استخدام compileSdk = 36
       - name: Force Upgrade CompileSdk to 36 everywhere
         run: |
           find /home/runner/.pub-cache/ -name "build.gradle" -type f -exec sed -i 's/compileSdk = .*/compileSdk = 36/g' {} +
@@ -39,18 +60,15 @@ jobs:
           find android/ -name "build.gradle*" -type f -exec sed -i 's/compileSdk = .*/compileSdk = 36/g' {} +
           find android/ -name "build.gradle*" -type f -exec sed -i 's/compileSdkVersion .*/compileSdkVersion 36/g' {} +
 
-      # بناء ملف الـ APK للأندرويد بنجاح وثبات
       - name: Build APK
         run: flutter build apk --release
 
-      # حفظ ملف الـ APK داخل جيت هوب للتحميل
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
-      # تهيئة وبناء نسخة الويب
       - name: Configure Project for Web
         run: flutter create . --platforms web --project-name cast2
 
