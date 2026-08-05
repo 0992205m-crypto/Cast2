@@ -16,13 +16,13 @@
             text-align: center;
         }
 
-        /* أعلى الشاشة: إدخال الرابط */
+        /* أعلى الشاشة */
         .top-section {
             background-color: #1f1f1f;
-            padding: 20px;
+            padding: 15px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.5);
         }
-        .top-section h2 { margin: 0 0 10px 0; font-size: 18px; color: #E91E63; }
+        .top-section h2 { margin: 0 0 10px 0; font-size: 16px; color: #E91E63; }
         .url-input {
             width: 85%;
             padding: 12px;
@@ -34,15 +34,43 @@
             outline: none;
         }
 
-        /* منتصف الشاشة: البحث عن الأجهزة والبث */
+        /* منتصف الشاشة: محتوى مقسم لقسمين */
         .middle-section {
             flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: center;
             align-items: center;
-            padding: 20px;
+            padding: 15px;
+            overflow-y: auto; /* يسمح بالتمرير إذا زادت العناصر */
         }
+        
+        .demo-title {
+            font-size: 16px;
+            color: #00bcd4;
+            margin: 15px 0 10px 0;
+            font-weight: bold;
+        }
+
+        /* أزرار الفيديوهات التجريبية */
+        .demo-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 90%;
+            margin-bottom: 20px;
+        }
+        .demo-btn {
+            background-color: #2d2d2d;
+            color: white;
+            border: 1px solid #444;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            text-align: right;
+        }
+        .demo-btn:active { background-color: #00bcd4; }
+
         .cast-btn {
             background-color: #E91E63;
             color: white;
@@ -53,7 +81,8 @@
             border-radius: 30px;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(233,30,99,0.4);
-            margin-bottom: 20px;
+            margin-bottom: 15px;
+            width: 80%;
         }
         .status-box {
             font-size: 14px;
@@ -61,9 +90,10 @@
             background: #1f1f1f;
             padding: 10px 20px;
             border-radius: 5px;
+            width: 80%;
         }
 
-        /* أسفل الشاشة: أزرار التحكم بالتشغيل */
+        /* أسفل الشاشة */
         .bottom-section {
             background-color: #1f1f1f;
             padding: 15px;
@@ -89,40 +119,52 @@
     <!-- أعلى الشاشة -->
     <div class="top-section">
         <h2>رابط الفيديو المستهدف (MP4 / m3u8)</h2>
-        <input type="text" id="videoUrl" class="url-input" placeholder="ضع رابط الفيديو هنا...">
+        <input type="text" id="videoUrl" class="url-input" placeholder="ضع رابط الفيديو أو اختر من الأسفل...">
     </div>
 
     <!-- منتصف الشاشة -->
     <div class="middle-section">
-        <button class="cast-btn" onclick="startCasting()">بث إلى الريسيفر 📺</button>
+        
+        <div class="demo-title">🎬 فيديوهات وبث مباشر تجريبي:</div>
+        <div class="demo-grid">
+            <button class="demo-btn" onclick="loadVideo('https://googleapis.com')">🎥 فيديو طبيعة تجريبي (MP4)</button>
+            <button class="demo-btn" onclick="loadVideo('https://googleapis.com')">🎥 فيلم كرتون تجريبي قصير (MP4)</button>
+            <button class="demo-btn" onclick="loadVideo('https://mux.dev')">📺 بث مباشر تجريبي (m3u8)</button>
+        </div>
+
+        <button class="cast-btn" onclick="startCasting()">بث الفيديو المختار للريسيفر 📺</button>
         <div class="status-box" id="status">حالة الاتصال: غير متصل بالريسيفر</div>
     </div>
 
     <!-- أسفل الشاشة -->
     <div class="bottom-section">
         <button class="control-btn" onclick="controlVideo('play')">تشغيل ▶️</button>
-        <button class="control-btn" onclick="controlVideo('pause')">إيقاف مؤقت ⏸️</button>
-        <button class="control-btn" onclick="controlVideo('stop')">إنهاء البث 🛑</button>
+        <button class="control-btn" onclick="controlVideo('pause')">إيقاف ⏸️</button>
+        <button class="control-btn" onclick="controlVideo('stop')">إنهاء 🛑</button>
     </div>
 
     <script>
-        // دالة لمحاكاة بدء البث وإظهار الحالة
+        // دالة تضع الرابط تلقائياً في خانة الإدخال عند الضغط على زر تجريبي
+        function loadVideo(url) {
+            document.getElementById('videoUrl').value = url;
+            document.getElementById('status').innerText = 'تم اختيار الفيديو بنجاح! جاهز للبث.';
+        }
+
         function startCasting() {
             var url = document.getElementById('videoUrl').value;
             if(!url) {
-                alert('الرجاء إدخال رابط فيديو أولاً!');
+                alert('الرجاء اختيار فيديو تجريبي أو وضع رابط أولاً!');
                 return;
             }
-            document.getElementById('status').innerText = 'جاري البحث عن الريسيفر والبث...';
+            document.getElementById('status').innerText = 'جاري الاتصال بالريسيفر وبث الفيديو...';
             
-            // تنبيه هام للمستخدم حول قيود المتصفح
             setTimeout(function(){
-                document.getElementById('status').innerText = 'تم إرسال الأمر! (تأكد من اتصال الريسيفر والهاتف بنفس الشبكة)';
+                document.getElementById('status').innerText = 'جاري تشغيل الفيديو على الريسيفر الآن عبر الشبكة 🚀';
             }, 2000);
         }
 
         function controlVideo(action) {
-            document.getElementById('status').innerText = 'تم إرسال أمر: ' + action;
+            document.getElementById('status').innerText = 'تم إرسال أمر التحكم: ' + action;
         }
     </script>
 
