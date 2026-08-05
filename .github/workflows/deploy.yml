@@ -23,15 +23,15 @@ jobs:
       - name: Configure Project for Android
         run: flutter create . --platforms android --project-name cast2
 
-      # خطوة سحرية لإصلاح مشكلة jcenter() في كل المكتبات تلقائياً قبل البناء
-      - name: Fix Android Repositories (Remove jcenter)
-        run: |
-          find . -name "build.gradle" -type f -exec sed -i 's/jcenter()/mavenCentral()/g' {} +
-
       - name: Install dependencies
         run: flutter pub get
 
-      # بناء ملف الـ APK للأندرويد مع إجبار النظام على تخطي فحص DSL الجديد
+      # الأمر القوي والنهائي: الدخول للمجلد المخفي وتطهيره من جينسنتر بالكامل
+      - name: Force Fix All Cached Repositories (Remove jcenter)
+        run: |
+          find /home/runner/.pub-cache/ -name "build.gradle" -type f -exec sed -i 's/jcenter()/mavenCentral()/g' {} +
+
+      # بناء ملف الـ APK للأندرويد
       - name: Build APK
         run: flutter build apk --release --no-shrink
 
