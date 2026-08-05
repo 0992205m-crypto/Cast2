@@ -26,12 +26,20 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # الأمر الذكي لحل مشكلة المتصفح وتعديل ملف proguard القديم تلقائياً
+      # إصلاح مشكلة proguard القديمة تلقائياً
       - name: Fix Proguard in Cached Libraries
         run: |
           find /home/runner/.pub-cache/ -name "build.gradle" -type f -exec sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' {} +
 
-      # بناء ملف الـ APK للأندرويد بنجاح
+      # الأمر القوي والجديد: إجبار المشروع على استخدام Android SDK 36 لحل الخطأ تماماً
+      - name: Upgrade Android SDK Compilation Version to 36
+        run: |
+          find android/ -name "build.gradle*" -type f -exec sed -i 's/compileSdk = .*/compileSdk = 36/g' {} +
+          find android/ -name "build.gradle*" -type f -exec sed -i 's/compileSdkVersion .*/compileSdkVersion 36/g' {} +
+          find android/ -name "build.gradle*" -type f -exec sed -i 's/targetSdk = .*/targetSdk = 36/g' {} +
+          find android/ -name "build.gradle*" -type f -exec sed -i 's/targetSdkVersion .*/targetSdkVersion 36/g' {} +
+
+      # بناء ملف الـ APK للأندرويد بنجاح وثبات
       - name: Build APK
         run: flutter build apk --release
 
