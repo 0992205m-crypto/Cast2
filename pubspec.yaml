@@ -9,10 +9,9 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  flutter_inappwebview: any # جعل الفلوتر يختار النسخة المتوافقة تلقائياً
+  flutter_inappwebview: any
   video_player: any
-  flutter_cast_video: any
-  media_cast_dlna: any      # استخدام الحزمة الأكثر استقراراً للريسيفرات والشاشات
+  media_cast: any # المكتبة البديلة الحديثة والمستقرة للبث والكاست
   file_picker: any
 
 dev_dependencies:
