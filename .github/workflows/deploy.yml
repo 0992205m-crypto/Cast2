@@ -1,4 +1,4 @@
-name: Flutter Web Deploy
+name: Flutter Build APK and Web
 
 on:
   push:
@@ -6,16 +6,12 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
-
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,20 +23,31 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # الخطوة السحرية الجديدة لتهيئة الويب تلقائياً داخل السيرفر
+      # 1. بناء ملف الـ APK للأندرويد
+      - name: Build APK
+        run: flutter build apk --release
+
+      # 2. حفظ ملف الـ APK داخل جيت هوب للتحميل
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+
+      # 3. تهيئة وبناء نسخة الويب
       - name: Configure Project for Web
         run: flutter create . --platforms web
 
       - name: Build Flutter Web
         run: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
 
-      - name: Upload Artifact
+      - name: Upload Web Artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: 'build/web'
 
-  deploy:
-    needs: build
+  deploy-web:
+    needs: build-and-deploy
     runs-on: ubuntu-latest
     environment:
       name: github-pages
