@@ -20,37 +20,43 @@ jobs:
         with:
           channel: 'stable'
 
-      # الخطوة الحاسمة: حذف أي مجلد أندرويد قديم وتالف لتجنب الأخطاء
+      # 1. تنظيف أي مخلفات برمجية قديمة وتالفة
       - name: Clean Old Android Files
         run: |
           rm -rf android/
           rm -rf .android/
 
-      # إنشاء مشروع أندرويد جديد ونظيف تماماً ومتوافق مع التحديثات الأخيرة
+      # 2. إنشاء مشروع أندرويد جديد ونظيف تماماً
       - name: Recreate Fresh Project for Android
         run: flutter create . --platforms android --project-name cast2
 
+      # 3. تحميل الحزم والمكتبات اللازمة للتطبيق
       - name: Install dependencies
         run: flutter pub get
 
-      # أمر ذكي لرفع الـ SDK في ملف أندرويد الجديد إلى 36 ليناسب حزمة file_picker
-      - name: Set Android SDK to 36
+      # 4. إجبار الخادم والمكتبات المخفية بالكامل على استخدام إصدار أندرويد 36
+      - name: Super Force Upgrade CompileSdk to 36
         run: |
-          find android/ -name "build.gradle*" -type f -exec sed -i -E 's/compileSdk[[:space:]]*=?[[:space:]]*[0-9]+/compileSdk = 36/g' {} +
-          find android/ -name "build.gradle*" -type f -exec sed -i -E 's/compileSdkVersion[[:space:]]*=?[[:space:]]*[0-9]+/compileSdkVersion 36/g' {} +
+          find /home/runner/.pub-cache/ android/ -name "build.gradle*" -type f -exec sed -i -E 's/compileSdk[[:space:]]*=?[[:space:]]*[0-9]+/compileSdk = 36/g' {} +
+          find /home/runner/.pub-cache/ android/ -name "build.gradle*" -type f -exec sed -i -E 's/compileSdkVersion[[:space:]]*=?[[:space:]]*[0-9]+/compileSdkVersion 36/g' {} +
 
-      # بناء ملف الـ APK للأندرويد بنجاح وثبات
+      # 5. القضاء على مشكلة proguard-android.txt في الحزم المخفية والمكتشفة (حل الخطأ الأخير)
+      - name: Fix Proguard in Cached Libraries
+        run: |
+          find /home/runner/.pub-cache/ -name "build.gradle" -type f -exec sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' {} +
+
+      # 6. بناء ملف الـ APK للأندرويد بنجاح وثبات
       - name: Build APK
         run: flutter build apk --release
 
-      # حفظ ملف الـ APK داخل جيت هوب للتحميل
+      # 7. حفظ ملف الـ APK داخل جيت هوب للتحميل
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
           name: app-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
 
-      # تهيئة وبناء نسخة الويب
+      # 8. تهيئة وبناء نسخة الويب
       - name: Configure Project for Web
         run: flutter create . --platforms web --project-name cast2
 
