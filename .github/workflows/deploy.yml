@@ -20,26 +20,26 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Configure Project for Android
+      # الخطوة الحاسمة: حذف أي مجلد أندرويد قديم وتالف لتجنب الأخطاء
+      - name: Clean Old Android Files
+        run: |
+          rm -rf android/
+          rm -rf .android/
+
+      # إنشاء مشروع أندرويد جديد ونظيف تماماً ومتوافق مع التحديثات الأخيرة
+      - name: Recreate Fresh Project for Android
         run: flutter create . --platforms android --project-name cast2
 
-      - name: Install and Upgrade Dependencies
-        run: |
-          flutter pub get
-          flutter pub upgrade --major-versions # أمر سحري لإجبار كل الحزم على حل مشاكل التعارض تلقائياً
+      - name: Install dependencies
+        run: flutter pub get
 
-      # إصلاح مشكلة proguard القديمة تلقائياً
-      - name: Fix Proguard in Cached Libraries
+      # أمر ذكي لرفع الـ SDK في ملف أندرويد الجديد إلى 36 ليناسب حزمة file_picker
+      - name: Set Android SDK to 36
         run: |
-          find /home/runner/.pub-cache/ -name "build.gradle" -type f -exec sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' {} +
+          find android/ -name "build.gradle*" -type f -exec sed -i -E 's/compileSdk[[:space:]]*=?[[:space:]]*[0-9]+/compileSdk = 36/g' {} +
+          find android/ -name "build.gradle*" -type f -exec sed -i -E 's/compileSdkVersion[[:space:]]*=?[[:space:]]*[0-9]+/compileSdkVersion 36/g' {} +
 
-      # إجبار الخادم والمكتبات بالكامل على استخدام إصدار أندرويد الحديث المتوافق 
-      - name: Force Upgrade CompileSdk to 36
-        run: |
-          find /home/runner/.pub-cache/ android/ -name "build.gradle*" -type f -exec sed -i -E 's/compileSdk[[:space:]]*=?[[:space:]]*[0-9]+/compileSdk = 36/g' {} +
-          find /home/runner/.pub-cache/ android/ -name "build.gradle*" -type f -exec sed -i -E 's/compileSdkVersion[[:space:]]*=?[[:space:]]*[0-9]+/compileSdkVersion 36/g' {} +
-
-      # بناء ملف الـ APK للأندرويد
+      # بناء ملف الـ APK للأندرويد بنجاح وثبات
       - name: Build APK
         run: flutter build apk --release
 
