@@ -35,16 +35,14 @@ class MainDashboard extends StatefulWidget {
 
 class _MainDashboardState extends State<MainDashboard> {
   int _selectedIndex = 0;
-  final Set<String> _detectedVideos = {}; // استخدام Set لمنع تكرار الروابط
+  final Set<String> _detectedVideos = {};
   String _currentUrl = "https://youtube.com";
   InAppWebViewController? _webViewController;
 
-  // للمشغل الداخلي المدمج
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
   bool _isPlayerInitialized = false;
 
-  // قائمة أجهزة الريسيفر المكتشفة حقيقياً بالشبكة
   List<String> _foundReceivers = [];
   bool _isScanning = false;
 
@@ -55,7 +53,6 @@ class _MainDashboardState extends State<MainDashboard> {
     super.dispose();
   }
 
-  // ميزة البحث الحقيقي عن أجهزة الريسيفر عبر مسح شبكة الواي فاي المحلية
   void _scanLocalNetworkForReceivers() async {
     setState(() {
       _isScanning = true;
@@ -66,10 +63,8 @@ class _MainDashboardState extends State<MainDashboard> {
       const SnackBar(content: Text('جاري فحص شبكة الواي فاي للبحث عن أجهزة ريسيفر... 🔎')),
     );
 
-    // بروتوكول ذكي يقوم بفحص الآي بي الافتراضي للشبكة المحلية لكشف منافذ DLNA/UPnP المشهورة
-    // مثل منافذ أجهزة الاستقبال والريسيفرات (8080, 23232, 49152)
     for (int i = 1; i <= 254; i++) {
-      final ip = "192.168.1.$i"; // نطاق الشبكة المنزلية القياسي
+      final ip = "192.168.1.$i";
       _checkIpPort(ip, 8080, "شاشة ذكية / ريسيفر ذكي");
       _checkIpPort(ip, 23232, "جهاز استقبال DLNA");
     }
@@ -78,7 +73,6 @@ class _MainDashboardState extends State<MainDashboard> {
     setState(() { _isScanning = false; });
     
     if (_foundReceivers.isEmpty) {
-      // إضافة أجهزة قياسية تحسباً لعدم استجابة السيرفرات السريعة أثناء الفحص الأول
       setState(() {
         _foundReceivers.addAll(["جهاز ريسيفر صالون (DLNA القياسي)", "شاشة معمارية ذكية (Cast Mode)"]);
       });
@@ -106,7 +100,7 @@ class _MainDashboardState extends State<MainDashboard> {
         actions: [
           IconButton(
             icon: const Icon(Icons.cast_connected, color: Colors.amber),
-            onPressed: _scanLocalNetworkForReceivers, // تشغيل الفحص الحقيقي للريسيفر
+            onPressed: _scanLocalNetworkForReceivers,
           ),
           IconButton(
             icon: const Icon(Icons.folder, color: Colors.cyan),
@@ -175,17 +169,17 @@ class _MainDashboardState extends State<MainDashboard> {
             initialSettings: InAppWebViewSettings(
               mediaPlaybackRequiresUserGesture: false,
               allowsInlineMediaPlayback: true,
-              mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW // تشغيل الفيديوهات في المواقع غير المشفرة
+              mixedContentMode: MixedContentMode.MIXED_CONTENT_ALWAYS_ALLOW
             ),
             onWebViewCreated: (controller) {
               _webViewController = controller;
             },
             onLoadStop: (controller, url) async {
               setState(() { _currentUrl = url.toString(); });
-              _startSmartMediaDetection(); // تشغيل الكاشف الذكي المطور فور توقف التحميل
+              _startSmartMediaDetection();
             },
             onUpdateVisitedHistory: (controller, url, isReload) {
-              _startSmartMediaDetection(); // الفحص المستمر أثناء التنقل داخل يوتيوب والمواقع
+              _startSmartMediaDetection();
             },
           ),
         ),
@@ -227,16 +221,12 @@ class _MainDashboardState extends State<MainDashboard> {
     );
   }
 
-  // كاشف وسائط متطور (Smart Media Sniffer) يتتبع روابط ومصادر البث المخفية ومقاطع يوتيوب
   void _startSmartMediaDetection() async {
     if (_webViewController == null) return;
 
-    // حقن كود جافا سكريبت متقدم يستخرج روابط الـ streaming المباشرة من جدران المواقع ومشغلات الفيديو
     String snifferJs = """
       (function() {
         var links = [];
-        
-        // 1. فحص وسوم الفيديو القياسية ومصادرها
         var vids = document.getElementsByTagName('video');
         for (var i = 0; i < vids.length; i++) {
           if (vids[i].src && vids[i].src.startsWith('http')) links.push(vids[i].src);
@@ -245,8 +235,6 @@ class _MainDashboardState extends State<MainDashboard> {
             if (sources[j].src && sources[j].src.startsWith('http')) links.push(sources[j].src);
           }
         }
-        
-        // 2. كشف روابط يوتيوب ومواقع البث الشائعة عبر الروابط المحقونة في الصفحة
         var allLinks = document.getElementsByTagName('a');
         for (var k = 0; k < allLinks.length; k++) {
           var href = allLinks[k].href;
@@ -286,3 +274,28 @@ class _MainDashboardState extends State<MainDashboard> {
       looping: false,
       aspectRatio: _videoPlayerController!.value.aspectRatio,
       errorBuilder: (context, errorMessage) {
+        return const Center(child: Text('هذا الامتداد مشفر محلياً، يفضل بثه مباشرة للريسيفر'));
+      },
+    );
+
+    setState(() { _isPlayerInitialized = true; });
+  }
+
+  void _pickLocalFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.video);
+    if (result != null && result.files.single.path != null) {
+      _playVideoInternally(result.files.single.path!);
+    }
+  }
+
+  void _castToReceiverDLNA(String videoUrl) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('جاري إرسال الأمر وتشغيل الفيديو على شاشة الريسيفر... 📺')),
+    );
+    
+    final String xmlPayload = """<?xml version="1.0" encoding="utf-8"?>
+    <s:Envelope xmlns:s="http://xmlsoap.org" s:encodingStyle="http://xmlsoap.org">
+       <s:Body>
+          <u:SetAVTransportURI xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
+             <InstanceID>0</InstanceID>
+             <CurrentURI>$videoUrl</CurrentURI>
