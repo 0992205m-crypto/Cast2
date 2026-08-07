@@ -63,7 +63,6 @@ class _MainDashboardState extends State<MainDashboard> {
       const SnackBar(content: Text('جاري فحص شبكة الواي فاي للبحث عن أجهزة ريسيفر... 🔎')),
     );
 
-    // توازي حقيقي لإرسال الطلبات دون تجميد واجهة التطبيق
     for (int i = 1; i <= 254; i++) {
       final ip = "192.168.1.$i";
       _checkIpPort(ip, 8080, "شاشة ذكية / ريسيفر ذكي");
@@ -205,10 +204,9 @@ class _MainDashboardState extends State<MainDashboard> {
             onWebViewCreated: (controller) {
               _webViewController = controller;
               
-              // قناة استماع آمنة ومستقرة لاستقبال الروابط الملتقطة فورياً عبر الجافا سكريبت
               _webViewController!.addJavaScriptHandler(handlerName: 'mediaSnifferHandler', callback: (args) {
-                if (args.isNotEmpty && args[0] != null) {
-                  String rawUrl = args[0].toString();
+                if (args.isNotEmpty && args != null) {
+                  String rawUrl = args.toString();
                   if (rawUrl.startsWith("http") && 
                      (rawUrl.contains('.mp4') || rawUrl.contains('.m3u8') || rawUrl.contains('.mpd') || rawUrl.contains('videoplayback') || rawUrl.contains('.mkv'))) {
                     setState(() {
@@ -271,20 +269,16 @@ class _MainDashboardState extends State<MainDashboard> {
   void _injectSmartMediaSniffer() async {
     if (_webViewController == null) return;
 
-    String snifferJs = """
-      (function() {
-        // 1. مراقبة حركة حزم الويب والطلبات الخلفية فور توليدها من المشغلات الذكية
-        var origOpen = XMLHttpRequest.prototype.open;
-        XMLHttpRequest.prototype.open = function(method, url) {
-          if (url && (url.includes('.mp4') || url.includes('.m3u8') || url.includes('.mpd') || url.includes('videoplayback'))) {
-            window.flutter_inappwebview.callHandler('mediaSnifferHandler', url);
-          }
-          return origOpen.apply(this, arguments);
-        };
+    String cleanJs = "var origOpen=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(method,url){if(url&&(url.includes('.mp4')||url.includes('.m3u8')||url.includes('.mpd')||url.includes('videoplayback'))){window.flutter_inappwebview.callHandler('mediaSnifferHandler',url);}return origOpen.apply(this,arguments);};function scanTags(){var vids=document.getElementsByTagName('video');for(var i=0;i<vids.length;i++){if(vids[i].src)window.flutter_inappwebview.callHandler('mediaSnifferHandler',vids[i].src);var sources=vids[i].getElementsByTagName('source');for(var j=0;j<sources.length;j++){if(sources[j].src)window.flutter_inappwebview.callHandler('mediaSnifferHandler',sources[j].src);}}}setInterval(scanTags,2000);scanTags();";
 
-        // 2. تتبع وفحص مستمر لوسوم الفيديوهات في الشاشة كل ثانيتين مجاراةً لتأخر التحميل
-        function scanTags() {
-          var vids = document.getElementsByTagName('video');
-          for (var i = 0; i < vids.length; i++) {
-            if (vids[i].src) window.flutter_inappwebview.callHandler('mediaSnifferHandler', vids[i].src);
-            var sources = vids[i].getElementsByTagName('source');
+    try {
+      await _webViewController!.evaluateJavascript(source: cleanJs);
+    } catch (_) {}
+  }
+
+  void _playVideoInternally(String url) async {
+    setState(() { _isPlayerInitialized = false; });
+    _videoPlayerController?.dispose();
+    _chewieController?.dispose();
+
+    _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(url));
