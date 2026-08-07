@@ -53,6 +53,52 @@ class _MainDashboardState extends State<MainDashboard> {
     super.dispose();
   }
 
+  // 1. نقل الدوال التنفيذية إلى الأعلى لتلافي أخطاء المعالجة المسبقة للـ Compiler
+  void _pickLocalFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.video);
+    if (result != null && result.files.single.path != null) {
+      _playVideoInternally(result.files.single.path!);
+    }
+  }
+
+  void _playVideoInternally(String url) async {
+    setState(() { _isPlayerInitialized = false; });
+    _videoPlayerController?.dispose();
+    _chewieController?.dispose();
+
+    _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(url));
+    await _videoPlayerController!.initialize();
+
+    _chewieController = ChewieController(
+      videoPlayerController: _videoPlayerController!,
+      autoPlay: true,
+      looping: false,
+      aspectRatio: _videoPlayerController!.value.aspectRatio,
+      errorBuilder: (context, errorMessage) {
+        return const Center(child: Text('هذا الامتداد مشفر محلياً، يفضل بثه مباشرة للريسيفر'));
+      },
+    );
+
+    setState(() { _isPlayerInitialized = true; });
+  }
+
+  void _castToReceiverDLNA(String videoUrl) async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('جاري إرسال الأمر وتشغيل الفيديو على شاشة الريسيفر... 📺')),
+    );
+  }
+
+  void _checkIpPort(String ip, int port, String type) async {
+    try {
+      final response = await http.get(Uri.parse('http://$ip:$port/')).timeout(const Duration(milliseconds: 200));
+      if (response.statusCode == 200 || response.statusCode == 404 || response.statusCode == 500) {
+        setState(() {
+          _foundReceivers.add("$type ($ip)");
+        });
+      }
+    } catch (_) {}
+  }
+
   void _scanLocalNetworkForReceivers() async {
     setState(() {
       _isScanning = true;
@@ -79,17 +125,6 @@ class _MainDashboardState extends State<MainDashboard> {
       });
     }
     _showDeviceSelectionDialog();
-  }
-
-  void _checkIpPort(String ip, int port, String type) async {
-    try {
-      final response = await http.get(Uri.parse('http://$ip:$port/')).timeout(const Duration(milliseconds: 200));
-      if (response.statusCode == 200 || response.statusCode == 404 || response.statusCode == 500) {
-        setState(() {
-          _foundReceivers.add("$type ($ip)");
-        });
-      }
-    } catch (_) {}
   }
 
   void _showDeviceSelectionDialog() {
@@ -121,55 +156,12 @@ class _MainDashboardState extends State<MainDashboard> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('كاست ماستر برو 📡'),
-        backgroundColor: const Color(0xFF1E293B),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.cast_connected, color: Colors.amber),
-            onPressed: _scanLocalNetworkForReceivers,
-          ),
-          IconButton(
-            icon: const Icon(Icons.folder, color: Colors.cyan),
-            onPressed: _pickLocalFile,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          if (_isPlayerInitialized && _chewieController != null)
-            Container(
-              height: 230,
-              color: Colors.black,
-              child: Chewie(controller: _chewieController!),
-            ),
-          Expanded(
-            child: _selectedIndex == 0 ? _buildBrowserTab() : _buildVideosListTab(),
-          ),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        backgroundColor: const Color(0xFF1E293B),
-        selectedItemColor: Colors.amber,
-        onTap: (index) {
-          setState(() { _selectedIndex = index; });
-        },
-        items: [
-          const BottomNavigationBarItem(icon: Icon(Icons.web), label: 'المتصفح'),
-          BottomNavigationBarItem(
-            icon: Badge(
-              label: Text(_detectedVideos.length.toString()),
-              child: const Icon(Icons.video_library),
-            ),
-            label: 'الفيديوهات المكتشفة',
-          ),
-        ],
-      ),
-    );
+  void _injectSmartMediaSniffer() async {
+    if (_webViewController == null) return;
+    String cleanJs = "var origOpen=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(method,url){if(url&&(url.includes('.mp4')||url.includes('.m3u8')||url.includes('.mpd')||url.includes('videoplayback'))){window.flutter_inappwebview.callHandler('mediaSnifferHandler',url);}return origOpen.apply(this,arguments);};function scanTags(){var vids=document.getElementsByTagName('video');for(var i=0;i<vids.length;i++){if(vids[i].src)window.flutter_inappwebview.callHandler('mediaSnifferHandler',vids[i].src);var sources=vids[i].getElementsByTagName('source');for(var j=0;j<sources.length;j++){if(sources[j].src)window.flutter_inappwebview.callHandler('mediaSnifferHandler',sources[j].src);}}}setInterval(scanTags,2000);scanTags();";
+    try {
+      await _webViewController!.evaluateJavascript(source: cleanJs);
+    } catch (_) {}
   }
 
   Widget _buildBrowserTab() {
@@ -203,10 +195,9 @@ class _MainDashboardState extends State<MainDashboard> {
             ),
             onWebViewCreated: (controller) {
               _webViewController = controller;
-              
               _webViewController!.addJavaScriptHandler(handlerName: 'mediaSnifferHandler', callback: (args) {
                 if (args.isNotEmpty && args != null) {
-                  String rawUrl = args.toString();
+                  String rawUrl = args[0].toString();
                   if (rawUrl.startsWith("http") && 
                      (rawUrl.contains('.mp4') || rawUrl.contains('.m3u8') || rawUrl.contains('.mpd') || rawUrl.contains('videoplayback') || rawUrl.contains('.mkv'))) {
                     setState(() {
@@ -266,19 +257,19 @@ class _MainDashboardState extends State<MainDashboard> {
     );
   }
 
-  void _injectSmartMediaSniffer() async {
-    if (_webViewController == null) return;
-
-    String cleanJs = "var origOpen=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(method,url){if(url&&(url.includes('.mp4')||url.includes('.m3u8')||url.includes('.mpd')||url.includes('videoplayback'))){window.flutter_inappwebview.callHandler('mediaSnifferHandler',url);}return origOpen.apply(this,arguments);};function scanTags(){var vids=document.getElementsByTagName('video');for(var i=0;i<vids.length;i++){if(vids[i].src)window.flutter_inappwebview.callHandler('mediaSnifferHandler',vids[i].src);var sources=vids[i].getElementsByTagName('source');for(var j=0;j<sources.length;j++){if(sources[j].src)window.flutter_inappwebview.callHandler('mediaSnifferHandler',sources[j].src);}}}setInterval(scanTags,2000);scanTags();";
-
-    try {
-      await _webViewController!.evaluateJavascript(source: cleanJs);
-    } catch (_) {}
-  }
-
-  void _playVideoInternally(String url) async {
-    setState(() { _isPlayerInitialized = false; });
-    _videoPlayerController?.dispose();
-    _chewieController?.dispose();
-
-    _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(url));
+  // 2. تم وضع دالة الـ build في نهاية الكلاس لضمان رؤية كتل الأكواد السابقة بشكل كامل للـ Linter
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('كاست ماستر برو 📡'),
+        backgroundColor: const Color(0xFF1E293B),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.cast_connected, color: Colors.amber),
+            onPressed: _scanLocalNetworkForReceivers,
+          ),
+          IconButton(
+            icon: const Icon(Icons.folder, color: Colors.cyan),
+            onPressed: _pickLocalFile,
+          ),
