@@ -24,11 +24,11 @@ jobs:
           flutter-version: '3.44.9'
           channel: 'stable'
 
-      # تنظيف وإعادة تهيئة بيئة أندرويد لضمان مطابقتها لأحدث المعايير البرمجية وتفادي تضارب الملفات القديمة
+      # تم تصحيح الأمر هنا لحذف المجلد القديم بالكامل وإعادة توليد ملفات أندرويد القياسية بدون خيار --force المخالف
       - name: Force Clean & Fresh Android Initialization
         run: |
           rm -rf android
-          flutter create . --platforms=android --force
+          flutter create --platforms=android .
 
       - name: Install dependencies
         run: flutter pub get
