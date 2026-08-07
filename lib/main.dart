@@ -53,7 +53,6 @@ class _MainDashboardState extends State<MainDashboard> {
     super.dispose();
   }
 
-  // 1. نقل الدوال التنفيذية إلى الأعلى لتلافي أخطاء المعالجة المسبقة للـ Compiler
   void _pickLocalFile() async {
     FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.video);
     if (result != null && result.files.single.path != null) {
@@ -196,8 +195,9 @@ class _MainDashboardState extends State<MainDashboard> {
             onWebViewCreated: (controller) {
               _webViewController = controller;
               _webViewController!.addJavaScriptHandler(handlerName: 'mediaSnifferHandler', callback: (args) {
-                if (args.isNotEmpty && args != null) {
-                  String rawUrl = args[0].toString();
+                if (args.isNotEmpty) {
+                  // استخراج الرابط النقي مباشرة من العنصر الأول لتجنب تعارض الأقواس المربعة
+                  String rawUrl = args.first.toString();
                   if (rawUrl.startsWith("http") && 
                      (rawUrl.contains('.mp4') || rawUrl.contains('.m3u8') || rawUrl.contains('.mpd') || rawUrl.contains('videoplayback') || rawUrl.contains('.mkv'))) {
                     setState(() {
@@ -257,7 +257,6 @@ class _MainDashboardState extends State<MainDashboard> {
     );
   }
 
-  // 2. تم وضع دالة الـ build في نهاية الكلاس لضمان رؤية كتل الأكواد السابقة بشكل كامل للـ Linter
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -273,3 +272,7 @@ class _MainDashboardState extends State<MainDashboard> {
             icon: const Icon(Icons.folder, color: Colors.cyan),
             onPressed: _pickLocalFile,
           ),
+        ],
+      ),
+      body: Column(
+        children: [
