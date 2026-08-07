@@ -196,7 +196,6 @@ class _MainDashboardState extends State<MainDashboard> {
               _webViewController = controller;
               _webViewController!.addJavaScriptHandler(handlerName: 'mediaSnifferHandler', callback: (args) {
                 if (args.isNotEmpty) {
-                  // استخراج الرابط النقي مباشرة من العنصر الأول لتجنب تعارض الأقواس المربعة
                   String rawUrl = args.first.toString();
                   if (rawUrl.startsWith("http") && 
                      (rawUrl.contains('.mp4') || rawUrl.contains('.m3u8') || rawUrl.contains('.mpd') || rawUrl.contains('videoplayback') || rawUrl.contains('.mkv'))) {
@@ -276,3 +275,6 @@ class _MainDashboardState extends State<MainDashboard> {
       ),
       body: Column(
         children: [
+          if (_isPlayerInitialized && _chewieController != null)
+            Container(
+              height: 230,
