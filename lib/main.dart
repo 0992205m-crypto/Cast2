@@ -293,9 +293,8 @@ class _MainDashboardState extends State<MainDashboard> {
       const SnackBar(content: Text('جاري إرسال الأمر وتشغيل الفيديو على شاشة الريسيفر... 📺')),
     );
     
-    final String xmlPayload = """<?xml version="1.0" encoding="utf-8"?>
-    <s:Envelope xmlns:s="http://xmlsoap.org" s:encodingStyle="http://xmlsoap.org">
-       <s:Body>
-          <u:SetAVTransportURI xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">
-             <InstanceID>0</InstanceID>
-             <CurrentURI>$videoUrl</CurrentURI>
+    // معالجة وحل مشكلة تداخل رموز الـ XML والنصوص الطويلة باستخدام دمج السلاسل الصافي
+    final String xmlPayload = '<?xml version="1.0" encoding="utf-8"?>' +
+    '<s:Envelope xmlns:s="http://xmlsoap.org" s:encodingStyle="http://xmlsoap.org">' +
+       '<s:Body>' +
+          '<u:SetAVTransportURI xmlns:u="urn:schemas-upnp-org:service:AVTransport:1">' +
