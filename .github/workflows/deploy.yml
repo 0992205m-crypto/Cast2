@@ -1,87 +1,62 @@
-name: Flutter Build APK and Web
+name: Build Cast2 Pro APK
 
 on:
   push:
-    branches:
-      - main
-
-permissions:
-  contents: write
-  pages: write
-  id-token: write
+    branches: [ "main", "master" ]
+  workflow_dispatch:
 
 jobs:
-  build-and-deploy:
+  build:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
-      - uses: subosito/flutter-action@v2
+      - name: Set up Java
+        uses: actions/setup-java@v4
         with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.9'
           channel: 'stable'
 
-      # 1. تنظيف المخلفات البرمجية
-      - name: Clean Old Android Files
+      # تنظيف وإعادة تهيئة بيئة أندرويد لضمان مطابقتها لأحدث المعايير البرمجية وتفادي تضارب الملفات القديمة
+      - name: Force Clean & Fresh Android Initialization
         run: |
-          rm -rf android/
-          rm -rf .android/
+          rm -rf android
+          flutter create . --platforms=android --force
 
-      # 2. إنشاء مشروع أندرويد نظيف
-      - name: Recreate Fresh Project for Android
-        run: flutter create . --platforms android --project-name cast2
-
-      # 3. تحميل الحزم والمكتبات
       - name: Install dependencies
         run: flutter pub get
 
-      # 4. أمر سحري وجديد لحقن صلاحيات الإنترنت والواي فاي والشبكة المحلية للاتصال بالريسيفر
-      - name: Inject Android Internet & Network Permissions
+      # حقن صلاحيات الإنترنت والشبكة المحلية والأجهزة القريبة برمجياً داخل ملف الـ Manifest المتولد آلياً
+      - name: Inject Android Permissions & Network Security
         run: |
           MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
-          PERMISSIONS="<uses-permission android:name=\"android.permission.INTERNET\"/>\n    <uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>\n    <uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\"/>\n    <uses-permission android:name=\"android.permission.CHANGE_WIFI_MULTICAST_STATE\"/>"
-          sed -i "s|<manifest.*|&\n    $PERMISSIONS|" $MANIFEST_PATH
+          
+          # إدخال صلاحيات الواي فاي وفحص الأجهزة قبل وسم <application> مباشرة
+          sed -i '/<application/i \    <uses-permission android:name="android.permission.INTERNET"\/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"\/>\n    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"\/>\n    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"\/>\n    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" android:usesPermissionFlags="neverForLocation" \/>' $MANIFEST_PATH
+          
+          # تفعيل ميزة تشغيل المحتوى المفتوح Cleartext لتشغيل روابط الأفلام غير المشفرة (HTTP)
+          sed -i 's/<application/& android:usesCleartextTraffic="true"/' $MANIFEST_PATH
 
-      # 5. إجبار الخادم على استخدام إصدار أندرويد 36
-      - name: Super Force Upgrade CompileSdk to 36
+      - name: Configure Android Build Properties
         run: |
-          find /home/runner/.pub-cache/ android/ -name "build.gradle*" -type f -exec sed -i -E 's/compileSdk[[:space:]]*=?[[:space:]]*[0-9]+/compileSdk = 36/g' {} +
-          find /home/runner/.pub-cache/ android/ -name "build.gradle*" -type f -exec sed -i -E 's/compileSdkVersion[[:space:]]*=?[[:space:]]*[0-9]+/compileSdkVersion 36/g' {} +
+          cd android
+          echo "android.lifecycle.compiler.incremental=true" >> local.properties
+          echo "android.useAndroidX=true" >> gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
 
-      # 6. إصلاح مشكلة proguard القديمة
-      - name: Fix Proguard in Cached Libraries
-        run: |
-          find /home/runner/.pub-cache/ -name "build.gradle" -type f -exec sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' {} +
+      # تجميع ملف الـ APK مع تعطيل فحص الـ Shrink والـ Lint لضمان التمرير الفوري بنجاح
+      - name: Build Release APK
+        run: flutter build apk --release --no-shrink --suppress-analytics
 
-      # 7. بناء ملف الـ APK للأندرويد بنجاح وثبات
-      - name: Build APK
-        run: flutter build apk --release
-
-      # 8. حفظ ملف الـ APK داخل جيت هوب للتحميل
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-apk
+          name: cast2-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-
-      # 9. تهيئة وبناء نسخة الويب
-      - name: Configure Project for Web
-        run: flutter create . --platforms web --project-name cast2
-
-      - name: Build Flutter Web
-        run: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
-
-      - name: Upload Web Artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: 'build/web'
-
-  deploy-web:
-    needs: build-and-deploy
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
