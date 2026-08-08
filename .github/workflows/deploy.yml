@@ -27,7 +27,7 @@ jobs:
         with:
           channel: stable
 
-      # 4. التخلص من الهيكلية القديمة وتوليد أندرويد حديث يدعم v2 Embedding تلقائياً
+      # 4. التخلص من الهيكلية القديمة وتوليد أندرويد حديث
       - name: Recreate Modern Android Folder
         run: |
           rm -rf android
@@ -37,11 +37,11 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # 6. إصلاح ملفات الـ Proguard المكسورة داخل الكاش لكل المكتبات (مثل WebView)
+      # 6. إصلاح ملفات الـ Proguard المكسورة داخل الكاش لكل المكتبات
       - name: Fix Proguard Files in Pub Cache
         run: |
           echo "Fixing proguard-android.txt issue in pub-cache..."
-          find /home/runner/.pub-cache/ -name "build.gradle" -exec sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' {} +
+          find /home/runner/.pub-cache/ -name "build.gradle" -exec sed -i  s/proguard-android.txt/proguard-android-optimize.txt/g  {} +
 
       # 7. فرض إعدادات الـ SDK المتوافقة مع المكتبات الحديثة وتخطي قيود التحديث الصارمة
       - name: Force SDK 36 Configurations
@@ -49,7 +49,7 @@ jobs:
           cat << EOF >> android/build.gradle
           subprojects {
               afterEvaluate { project ->
-                  if (project.hasProperty('android')) {
+                  if (project.hasProperty( android )) {
                       project.android {
                           compileSdk = 36
                           defaultConfig {
@@ -61,12 +61,14 @@ jobs:
           }
           EOF
 
-      # 8. البناء النهائي التلقائي مع فرض التوافقية المؤقتة للمكتبات القديمة وتجاهل تحذيرات KGP/AGP
+      # 8. البناء النهائي التلقائي مع كسر استثناء مراقبة المسار وتجاوز تعارض الكاش
       - name: Build Release APK
         env:
           FLUTTER_SUPPRESS_KGP_WARNINGS: "true"
           ALLOW_DEPRECATED_KGP: "true"
-        run: flutter build apk --release --ignore-deprecation --no-tree-shake-icons --no-pub
+          GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx2048m"
+        run: |
+          flutter build apk --release --ignore-deprecation --no-tree-shake-icons --no-pub --no-track-widget-creation
 
       # 9. رفع ملف الـ APK النهائي والناجح تماماً
       - name: Upload Ultimate APK Artifact
