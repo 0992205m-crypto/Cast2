@@ -1,82 +1,52 @@
-name: Build Cast2 Pro APK
+name: Flutter Build APK
 
 on:
   push:
     branches:
       - main
-      - master
-  workflow_dispatch:
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      # 1. جلب ملفات المشروع
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Set up Java
+      # 2. إعداد جافا 17 (الحل الجذري لمشكلة تعارض الـ SDK)
+      - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
+          cache: 'gradle'
 
+      # 3. إعداد فلاتر المستقرة
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.44.9'
           channel: 'stable'
+          cache: true
 
-      # 1. إجبار اسم المشروع داخل pubspec.yaml على التحول لحروف صغيرة
-      - name: Fix Pubspec Project Name Case
-        run: |
-          if [ -f pubspec.yaml ]; then
-            sed -i 's/name: .*/name: cast2/g' pubspec.yaml
-          fi
-
-      # 2. توليد بيئة أندرويد قياسية
-      - name: Force Clean & Fresh Android Initialization
-        run: |
-          rm -rf android
-          flutter create --platforms=android --org com.example --project-name cast2 .
-
+      # 4. تحميل الحزم والمكتبات
       - name: Install dependencies
         run: flutter pub get
 
-      # 3. اختراق وتعديل ملف التشريد التالف لحزمة المتصفح في الـ Cache
-      - name: Fix InAppWebView Android Proguard Bug
-        run: |
-          find /home/runner/.pub-cache/ -name "build.gradle" -exec sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' {} +
+      # 5. تنظيف الكاش القديم تماماً
+      - name: Clean project cache
+        run: flutter clean
 
-      # 4. الحل الحاسم: إجبار ملف Gradle الرئيسي والتطبيقي على البناء على إصدار مستقر يجمع كل المكتبات وتخطي قيود الـ SDK
-      - name: Force Upgrade Android SDK Configurations
-        run: |
-          APP_GRADLE="android/app/build.gradle"
-          if [ -f "$APP_GRADLE" ]; then
-            sed -i 's/compileSdk .*/compileSdk 34/g' $APP_GRADLE
-            sed -i 's/targetSdk .*/targetSdk 34/g' $APP_GRADLE
-            sed -i 's/minSdk .*/minSdk 21/g' $APP_GRADLE
-          fi
-
-      # 5. حقن صلاحيات الإنترنت والأجهزة القريبة داخل الـ Manifest المتولد آلياً
-      - name: Inject Android Permissions & Network Security
-        run: |
-          MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.INTERNET"\/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"\/>\n    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"\/>\n    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"\/>\n    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" android:usesPermissionFlags="neverForLocation" \/>' $MANIFEST_PATH
-          sed -i 's/<application/& android:usesCleartextTraffic="true"/' $MANIFEST_PATH
-
-      - name: Configure Android Build Properties
-        run: |
-          cd android
-          echo "android.lifecycle.compiler.incremental=true" >> local.properties
-          echo "android.useAndroidX=true" >> gradle.properties
-          echo "android.enableJetifier=true" >> gradle.properties
-
-      # 6. تجميع ملف الـ APK النهائي بنجاح
+      # 6. بناء نسخة الـ APK النهائية
       - name: Build Release APK
-        run: flutter build apk --release --no-shrink --suppress-analytics
+        run: flutter build apk --release
 
+      # 7. رفع ملف الـ APK لتنزيله على هاتفك
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: cast2-release-apk
+          name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
