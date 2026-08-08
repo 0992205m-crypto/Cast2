@@ -274,3 +274,5 @@ class _MainDashboardState extends State<MainDashboard> {
         ],
       ),
     );
+  }
+}
