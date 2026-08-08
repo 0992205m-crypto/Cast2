@@ -27,15 +27,39 @@ jobs:
         with:
           channel: stable
 
-      # 4. تحميل مكاتب المشروع
+      # 4. التخلص من الهيكلية القديمة وتوليد أندرويد حديث (حل مشكلة v1 embedding)
+      - name: Recreate Modern Android Folder
+        run: |
+          rm -rf android
+          flutter create --platforms=android .
+
+      # 5. تحميل مكاتب المشروع
       - name: Install dependencies
         run: flutter pub get
 
-      # 5. البناء النهائي للنسخة المستقرة (سيقوم بتوليد ملفات Gradle وبنائها تلقائياً)
+      # 6. فرض إصدار الـ SDK المطلوب للمتجر (34) برمجياً على المجلد الجديد والمكتبات
+      - name: Force SDK 34 Configurations
+        run: |
+          cat << EOF >> android/build.gradle
+          subprojects {
+              afterEvaluate { project ->
+                  if (project.hasProperty('android')) {
+                      project.android {
+                          compileSdk = 34
+                          defaultConfig {
+                              targetSdk = 34
+                          }
+                      }
+                  }
+              }
+          }
+          EOF
+
+      # 7. البناء النهائي التلقائي للنسخة النهائية
       - name: Build Release APK
         run: flutter build apk --release --ignore-deprecation --no-tree-shake-icons
 
-      # 6. رفع ملف الـ APK النهائي الناجح
+      # 8. رفع ملف الـ APK النهائي والناجح تماماً
       - name: Upload Ultimate APK Artifact
         uses: actions/upload-artifact@v4
         with:
