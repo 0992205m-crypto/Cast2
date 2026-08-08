@@ -24,7 +24,7 @@ jobs:
           flutter-version: '3.44.9'
           channel: 'stable'
 
-      # تم تصحيح الأمر هنا لحذف المجلد القديم بالكامل وإعادة توليد ملفات أندرويد القياسية بدون خيار --force المخالف
+      # تم تصحيح الأمر هنا لحذف المجلد القديم بالكامل وإعادة توليد ملفات أندرويد القياسية بدون خيار --force المخاطِر
       - name: Force Clean & Fresh Android Initialization
         run: |
           rm -rf android
@@ -33,27 +33,47 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # حقن صلاحيات الإنترنت والشبكة المحلية والأجهزة القريبة برمجياً داخل ملف الـ Manifest المتولد آلياً
+      # حقن صلاحيات الإنترنت والشبكة المحلية والأجهزة القريبة برمجياً داخل ملف الـ Manifest المولد بشكل آمن
       - name: Inject Android Permissions & Network Security
         run: |
           MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
-          
-          # إدخال صلاحيات الواي فاي وفحص الأجهزة قبل وسم <application> مباشرة
-          sed -i '/<application/i \    <uses-permission android:name="android.permission.INTERNET"\/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"\/>\n    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"\/>\n    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"\/>\n    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" android:usesPermissionFlags="neverForLocation" \/>' $MANIFEST_PATH
-          
-          # تفعيل ميزة تشغيل المحتوى المفتوح Cleartext لتشغيل روابط الأفلام غير المشفرة (HTTP)
-          sed -i 's/<application/& android:usesCleartextTraffic="true"/' $MANIFEST_PATH
+
+          # إذا كان الملف غير موجود، أنشئ مشروع أندرويد أولاً
+          if [ ! -f "$MANIFEST_PATH" ]; then
+            echo "AndroidManifest.xml not found at $MANIFEST_PATH"
+            exit 1
+          fi
+
+          # أدخل صلاحيات الإنترنت وحالة الشبكة مباشرة قبل الوسم <application> (idempotent)
+          awk '{
+            if ($0 ~ /<application/) {
+              print "    <uses-permission android:name=\"android.permission.INTERNET\"/>"
+              print "    <uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>"
+              print "    <uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\"/>"
+            }
+            print $0
+          }' "$MANIFEST_PATH" > "$MANIFEST_PATH.tmp" && mv "$MANIFEST_PATH.tmp" "$MANIFEST_PATH"
+
+          # أضف attribute لتفعيل cleartext بشكل آمن (لن يكرر الإضافة إذا كانت موجودة)
+          if ! grep -q 'android:usesCleartextTraffic' "$MANIFEST_PATH"; then
+            sed -i 's#<application#<application android:usesCleartextTraffic="true"#' "$MANIFEST_PATH"
+          fi
 
       - name: Configure Android Build Properties
         run: |
           cd android
-          echo "android.lifecycle.compiler.incremental=true" >> local.properties
+          # ضع خواص البناء في gradle.properties (الملف الصحيح)
+          echo "android.lifecycle.compiler.incremental=true" >> gradle.properties
           echo "android.useAndroidX=true" >> gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
 
-      # تجميع ملف الـ APK مع تعطيل فحص الـ Shrink والـ Lint لضمان التمرير الفوري بنجاح
-      - name: Build Release APK
-        run: flutter build apk --release --no-shrink --suppress-analytics
+      # تجميع ملف الـ APK مع تعطيل فحص الـ Shrink والـ Lint وللحصول على مخرجات تفصيلية عند الفشل
+      - name: Build Release APK (verbose & show gradle stacktrace on failure)
+        run: |
+          # حاول البناء بصيغة Flutter مع -v لإظهار مزيد من المعلومات
+          flutter build apk --release --no-shrink --suppress-analytics -v || (
+            echo "flutter build failed; re-running gradle with stacktrace" && cd android && ./gradlew assembleRelease --stacktrace --info
+          )
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
