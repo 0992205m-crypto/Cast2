@@ -13,11 +13,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. جلب ملفات المشروع
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. إعداد جافا 17 (الحل الجذري لمشكلة تعارض الـ SDK)
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -25,26 +23,26 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
-      # 3. إعداد فلاتر المستقرة
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
 
-      # 4. تحميل الحزم والمكتبات
+      # سكريبت ذكي يقوم بتحديث الـ Embedding تلقائياً داخل الملفات دون تدخلك
+      - name: Fix Android v1 embedding automatically
+        run: |
+          find . -name "AndroidManifest.xml" -exec sed -i '/<\/application>/i \        <meta-data android:name="flutterEmbedding" android:value="2" \/>' {} \;
+
       - name: Install dependencies
         run: flutter pub get
 
-      # 5. تنظيف الكاش القديم تماماً
       - name: Clean project cache
         run: flutter clean
 
-      # 6. بناء نسخة الـ APK النهائية
       - name: Build Release APK
         run: flutter build apk --release
 
-      # 7. رفع ملف الـ APK لتنزيله على هاتفك
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
