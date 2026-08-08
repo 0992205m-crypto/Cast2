@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. جلب الكود من المستودع
+      # 1. جلب ملفات المشروع
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -32,17 +32,19 @@ jobs:
           channel: 'stable'
           cache: true
 
-      # 4. تحميل مكاتب المشروع 
+      # 4. تحميل مكاتب المشروع الأساسية
       - name: Install dependencies
         run: flutter pub get
 
-      # 5. تنظيف الكاش
-      - name: Clean project cache
-        run: flutter clean
+      # 5. تنظيف وحذف مجلد أندرويد القديم وتوليد مجلد حديث بالكامل (حل مشكلة v1 embedding نهائياً)
+      - name: Recreate Android Folder with V2 Embedding
+        run: |
+          rm -rf android
+          flutter create --platforms=android .
 
-      # 6. البناء الإجباري وتجاوز أخطاء الإصدارات القديمة (الحل الجذري للمشكلة)
-      - name: Build Release APK (Ignore Deprecation)
-        run: flutter build apk --release --ignore-deprecation
+      # 6. بناء نسخة الـ APK النهائية النظيفة
+      - name: Build Release APK
+        run: flutter build apk --release
 
       # 7. رفع ملف الـ APK النهائي للتحميل
       - name: Upload APK Artifact
