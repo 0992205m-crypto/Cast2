@@ -1,3 +1,13 @@
+Skip to content
+cast2
+Repository navigation
+Code
+Issues
+Pull requests
+.github/workflows/deploy.yml
+Update deploy.yml for Android folder checks and properties #95
+Workflow file for this run
+.github/workflows/deploy.yml at 6fcc83a
 name: Absolute Final Bulletproof Build 2026
 
 on:
@@ -35,7 +45,6 @@ jobs:
           else
             flutter create --platforms=android .
           fi
-
       # 5. تحميل مكاتب المشروع
       - name: Install dependencies
         run: flutter pub get
@@ -45,7 +54,6 @@ jobs:
         run: |
           echo "Fixing proguard-android.txt issue in pub-cache..."
           find /home/runner/.pub-cache/ -name "build.gradle" -exec sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' {} +
-
       # 7. إعادة تطبيق خصائص Gradle الخاصة بالـ CI لمنع watcher ومشاكل KGP
       - name: Reapply CI android/gradle.properties
         run: |
@@ -54,6 +62,14 @@ jobs:
 # Gradle properties for CI
 # Disable Gradle file watching to avoid "Already watching path" errors in CI
 org.gradle.vfs.watch=false
+ Check failure on line 56 in .github/workflows/deploy.yml
+
+
+GitHub Actions
+/ .github/workflows/deploy.yml
+Invalid workflow file
+
+You have an error in your yaml syntax on line 56
 
 # Override legacy Kotlin DSL flags to avoid flutter_inappwebview plugin build error on CI
 # The plugin fails when android.builtInKotlin=true and android.newDsl=false are present (or injected).
@@ -72,7 +88,6 @@ EOF
           else
             echo "android/ not present"
           fi
-
       # 9. البناء النهائي التلقائي المستقر وتجاوز تعارض الكاش والـ Watcher والمكتبات القديمة
       - name: Build Release APK
         env:
@@ -81,7 +96,6 @@ EOF
           GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.jvmargs=-Xmx2048m -Dorg.gradle.welcome=never"
         run: |
           flutter build apk --release --ignore-deprecation --no-tree-shake-icons --no-pub --no-track-widget-creation
-
       # 10. رفع ملف الـ APK النهائي الجاهز للتحميل
       - name: Upload Ultimate APK Artifact
         uses: actions/upload-artifact@v4
