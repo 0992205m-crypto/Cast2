@@ -27,7 +27,7 @@ jobs:
         with:
           channel: stable
 
-      # 4. التخلص من الهيكلية القديمة وتوليد أندرويد حديث
+      # 4. التخلص من الهيكلية القديمة وتوليد أندرويد حديث يدعم v2 Embedding تلقائياً
       - name: Recreate Modern Android Folder
         run: |
           rm -rf android
@@ -37,13 +37,13 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # 6. إصلاح ملفات الـ Proguard المكسورة داخل الكاش لكل المكتبات
+      # 6. إصلاح ملفات الـ Proguard المكسورة داخل الكاش لكل المكتبات (مثل WebView)
       - name: Fix Proguard Files in Pub Cache
         run: |
           echo "Fixing proguard-android.txt issue in pub-cache..."
           find /home/runner/.pub-cache/ -name "build.gradle" -exec sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' {} +
 
-      # 7. فرض إصدار الـ SDK 36 لحل تعارض مكتبة ExoPlayer الحديثة
+      # 7. فرض إعدادات الـ SDK المتوافقة مع المكتبات الحديثة وتخطي قيود التحديث الصارمة
       - name: Force SDK 36 Configurations
         run: |
           cat << EOF >> android/build.gradle
@@ -61,9 +61,12 @@ jobs:
           }
           EOF
 
-      # 8. البناء النهائي التلقائي للنسخة النهائية
+      # 8. البناء النهائي التلقائي مع فرض التوافقية المؤقتة للمكتبات القديمة وتجاهل تحذيرات KGP/AGP
       - name: Build Release APK
-        run: flutter build apk --release --ignore-deprecation --no-tree-shake-icons
+        env:
+          FLUTTER_SUPPRESS_KGP_WARNINGS: "true"
+          ALLOW_DEPRECATED_KGP: "true"
+        run: flutter build apk --release --ignore-deprecation --no-tree-shake-icons --no-pub
 
       # 9. رفع ملف الـ APK النهائي والناجح تماماً
       - name: Upload Ultimate APK Artifact
