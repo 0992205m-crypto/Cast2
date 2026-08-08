@@ -16,6 +16,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 1. إعداد بيئة جافا حديثة
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
@@ -23,26 +24,38 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
+      # 2. إعداد فلاتر المستقرة
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
           cache: true
 
-      # سكريبت ذكي يقوم بتحديث الـ Embedding تلقائياً داخل الملفات دون تدخلك
-      - name: Fix Android v1 embedding automatically
+      # 3. سكريبت جراحي يقوم بتحديث المانيفست وحذف أكواد الـ V1 القديمة تلقائياً من ملفات الجافا والكوتلن
+      - name: Force Upgrade to Android V2 Embedding
         run: |
+          echo "Upgrading Manifest files..."
           find . -name "AndroidManifest.xml" -exec sed -i '/<\/application>/i \        <meta-data android:name="flutterEmbedding" android:value="2" \/>' {} \;
+          
+          echo "Upgrading Activity files..."
+          # تحديث ملفات الكوتلن لتبديل الفريمورك القديم بالحديث
+          find . -name "MainActivity.kt" -exec sed -i 's/import io.flutter.app.FlutterActivity/import io.flutter.embedding.android.FlutterActivity/g' {} \;
+          # تحديث ملفات الجافا لتبديل الفريمورك القديم بالحديث
+          find . -name "MainActivity.java" -exec sed -i 's/import io.flutter.app.FlutterActivity/import io.flutter.embedding.android.FlutterActivity/g' {} \;
 
+      # 4. تحميل المكاتب المتوافقة
       - name: Install dependencies
         run: flutter pub get
 
+      # 5. تنظيف كامل للكاش لتطبيق التعديلات الجديدة
       - name: Clean project cache
         run: flutter clean
 
+      # 6. بناء التطبيق النهائي مع تخطي أي تحذيرات قديمة
       - name: Build Release APK
-        run: flutter build apk --release
+        run: flutter build apk --release --no-pub
 
+      # 7. رفع الملف الجاهز للتحميل
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
