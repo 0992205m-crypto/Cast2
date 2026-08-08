@@ -1,82 +1,19 @@
-name: Build Cast2 Pro APK
-
-on:
-  push:
-    branches: [ "main", "master" ]
-  workflow_dispatch:
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '17'
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.44.9'
-          channel: 'stable'
-
-      # تم تصحيح الأمر هنا لحذف المجلد القديم بالكامل وإعادة توليد ملفات أندرويد القياسية بدون خيار --force المخاطِر
-      - name: Force Clean & Fresh Android Initialization
+      # Temporary patch step to avoid flutter_inappwebview_android build.gradle evaluation errors in CI
+      - name: Patch flutter_inappwebview_android for CI (temporary)
         run: |
-          rm -rf android
-          flutter create --platforms=android .
-
-      - name: Install dependencies
-        run: flutter pub get
-
-      # حقن صلاحيات الإنترنت والشبكة المحلية والأجهزة القريبة برمجياً داخل ملف الـ Manifest المولد بشكل آمن
-      - name: Inject Android Permissions & Network Security
-        run: |
-          MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
-
-          # إذا كان الملف غير موجود، أنشئ مشروع أندرويد أولاً
-          if [ ! -f "$MANIFEST_PATH" ]; then
-            echo "AndroidManifest.xml not found at $MANIFEST_PATH"
-            exit 1
-          fi
-
-          # أدخل صلاحيات الإنترنت وحالة الشبكة مباشرة قبل الوسم <application> (idempotent)
-          awk '{
-            if ($0 ~ /<application/) {
-              print "    <uses-permission android:name=\"android.permission.INTERNET\"/>"
-              print "    <uses-permission android:name=\"android.permission.ACCESS_NETWORK_STATE\"/>"
-              print "    <uses-permission android:name=\"android.permission.ACCESS_WIFI_STATE\"/>"
-            }
-            print $0
-          }' "$MANIFEST_PATH" > "$MANIFEST_PATH.tmp" && mv "$MANIFEST_PATH.tmp" "$MANIFEST_PATH"
-
-          # أضف attribute لتفعيل cleartext بشكل آمن (لن يكرر الإضافة إذا كانت موجودة)
-          if ! grep -q 'android:usesCleartextTraffic' "$MANIFEST_PATH"; then
-            sed -i 's#<application#<application android:usesCleartextTraffic="true"#' "$MANIFEST_PATH"
-          fi
-
-      - name: Configure Android Build Properties
-        run: |
-          cd android
-          # ضع خواص البناء في gradle.properties (الملف الصحيح)
-          echo "android.lifecycle.compiler.incremental=true" >> gradle.properties
-          echo "android.useAndroidX=true" >> gradle.properties
-          echo "android.enableJetifier=true" >> gradle.properties
-
-      # تجميع ملف الـ APK مع تعطيل فحص الـ Shrink والـ Lint وللحصول على مخرجات تفصيلية عند الفشل
-      - name: Build Release APK (verbose & show gradle stacktrace on failure)
-        run: |
-          # حاول البناء بصيغة Flutter مع -v لإظهار مزيد من المعلومات
-          flutter build apk --release --no-shrink --suppress-analytics -v || (
-            echo "flutter build failed; re-running gradle with stacktrace" && cd android && ./gradlew assembleRelease --stacktrace --info
-          )
-
-      - name: Upload APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: cast2-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          set -e
+          PUB_CACHE="$HOME/.pub-cache/hosted/pub.dev"
+          echo "Looking for flutter_inappwebview_android dirs in $PUB_CACHE..."
+          for d in "$PUB_CACHE"/flutter_inappwebview_android-*; do
+            if [ -d "$d/android" ]; then
+              echo "Patching $d/android/build.gradle ..."
+              cp "$d/android/build.gradle" "$d/android/build.gradle.bak" || true
+              # Comment out plugin id lines that apply org.jetbrains.kotlin.android (temporary)
+              sed -i '/org.jetbrains.kotlin.android/ s/^/\\/\\/ /' "$d/android/build.gradle" || true
+              # Also comment any lines that call 'kotlinOptions' or other plugin-specific configuration if they error
+              sed -i '/kotlinOptions/ s/^/\\/\\/ /' "$d/android/build.gradle" || true
+              # Optional: print head of patched file for debug
+              echo "First 60 lines of patched build.gradle:"
+              sed -n '1,60p' "$d/android/build.gradle" || true
+            fi
+          done
