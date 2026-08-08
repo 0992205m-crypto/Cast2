@@ -1,18 +1,60 @@
-- name: Patch flutter_inappwebview_android for CI (temporary)
+name: Build Cast2 Pro APK
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.44.9'
+          channel: 'stable'
+
+      # حذف المجلد القديم وإعادة توليد ملفات أندرويد القياسية بنقاء
+      - name: Force Clean & Fresh Android Initialization
         run: |
-          set -e
-          PUB_CACHE="$HOME/.pub-cache/hosted/pub.dev"
-          echo "Looking for flutter_inappwebview_android dirs in $PUB_CACHE..."
-          for d in "$PUB_CACHE"/flutter_inappwebview_android-*; do
-            if [ -d "$d/android" ]; then
-              echo "Patching $d/android/build.gradle ..."
-              cp "$d/android/build.gradle" "$d/android/build.gradle.bak" || true
-              # Comment out plugin id lines that apply org.jetbrains.kotlin.android (temporary)
-              sed -i '/org.jetbrains.kotlin.android/ s/^/\\/\\/ /' "$d/android/build.gradle" || true
-              # Also comment any lines that call 'kotlinOptions' or other plugin-specific configuration if they error
-              sed -i '/kotlinOptions/ s/^/\\/\\/ /' "$d/android/build.gradle" || true
-              # Optional: print head of patched file for debug
-              echo "First 60 lines of patched build.gradle:"
-              sed -n '1,60p' "$d/android/build.gradle" || true
-            fi
-          don
+          rm -rf android
+          flutter create --platforms=android .
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      # حقن صلاحيات الإنترنت والشبكة المحلية والأجهزة القريبة برمجياً داخل ملف الـ Manifest
+      - name: Inject Android Permissions & Network Security
+        run: |
+          MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
+          sed -i '/<application/i \    <uses-permission android:name="android.permission.INTERNET"\/>\n    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"\/>\n    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"\/>\n    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"\/>\n    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" android:usesPermissionFlags="neverForLocation" \/>' $MANIFEST_PATH
+          sed -i 's/<application/& android:usesCleartextTraffic="true"/' $MANIFEST_PATH
+
+      - name: Configure Android Build Properties
+        run: |
+          cd android
+          echo "android.lifecycle.compiler.incremental=true" >> local.properties
+          echo "android.useAndroidX=true" >> gradle.properties
+          echo "android.enableJetifier=true" >> gradle.properties
+
+      # تجميع ملف الـ APK بنجاح
+      - name: Build Release APK
+        run: flutter build apk --release --no-shrink --suppress-analytics
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cast2-release-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
