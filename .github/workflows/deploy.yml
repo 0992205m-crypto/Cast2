@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. جلب ملفات المشروع
+      # 1. جلب ملفات المشروع (مع التعديلات اليدوية التي قمت بها)
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -18,77 +18,31 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
-          java-version: '17'
+          distribution: zulu
+          java-version: 17
 
       # 3. إعداد فلاتر المستقرة
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
-          channel: 'stable'
+          channel: stable
 
-      # 4. سحق مجلد أندرويد القديم وتوليد مجلد نظيف
-      - name: Kill V1 Embedding and Recreate Android
-        run: |
-          rm -rf android
-          flutter create --platforms=android .
-
-      # 5. تحميل مكاتب المشروع
+      # 4. تحميل مكاتب المشروع
       - name: Install dependencies
         run: flutter pub get
 
-      # 6. ⚔️ الحقن الصارم والنهائي لـ SDK 36 وإصلاح Proguard رغماً عن أي مكتبة
-      - name: Global Injection Fix
+      # 5. تنظيف ملفات الكاش القديمة في أندرويد
+      - name: Clean Android Project
         run: |
-          echo "Overriding all project specifications globally..."
-          
-          # تعديل ملف build.gradle الرئيسي بشكل صارم جداً لفرض إصدار 36 على كل شيء (حتى المكاتب الخارجية)
-          cat << 'EOF' > android/build.gradle
-          allprojects {
-              repositories {
-                  google()
-                  mavenCentral()
-              }
-          }
-          subprojects {
-              subprojects {
-                  afterEvaluate { project ->
-                      if (project.hasProperty('android')) {
-                          project.android {
-                              compileSdk = 36
-                              buildToolsVersion = "36.0.0"
-                              defaultConfig {
-                                  targetSdk = 36
-                              }
-                          }
-                      }
-                  }
-              }
-          }
-          rootProject.buildDir = '../build'
-          subprojects {
-              project.buildDir = "${rootProject.buildDir}/${project.name}"
-          }
-          subprojects {
-              project.evaluationDependsOn(':app')
-          }
-          tasks.register("clean", Delete) {
-              delete rootProject.buildDir
-          }
-          EOF
+          cd android
+          ./gradlew clean
+          cd ..
 
-          # تعديل إجباري لملف التطبيق الداخلي ليكون 36
-          sed -i 's/compileSdk = .*/compileSdk = 36/g' android/app/build.gradle
-          sed -i 's/targetSdk = .*/targetSdk = 36/g' android/app/build.gradle
-
-          # تنظيف وإصلاح ملفات الـ Proguard المكسورة في الكاش بأكمله
-          find /home/runner/.pub-cache/ -name "build.gradle" -exec sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' {} +
-
-      # 7. البناء النهائي المستقر والتلقائي
+      # 6. البناء النهائي المستقر والتلقائي للنسخة النهائية
       - name: Build Release APK
-        run: flutter build apk --release --no-pub --ignore-deprecation --no-tree-shake-icons
+        run: flutter build apk --release --ignore-deprecation --no-tree-shake-icons
 
-      # 8. رفع ملف الـ APK النهائي والناجح تماماً
+      # 7. رفع ملف الـ APK النهائي الناجح
       - name: Upload Ultimate APK Artifact
         uses: actions/upload-artifact@v4
         with:
