@@ -26,7 +26,7 @@ jobs:
           flutter-version: '3.44.9'
           channel: 'stable'
 
-      # حذف المجلد القديم وإعادة توليد ملفات أندرويد القياسية بنقاء
+      # 1. حذف المجلد القديم وإعادة توليد ملفات أندرويد القياسية بنقاء
       - name: Force Clean & Fresh Android Initialization
         run: |
           rm -rf android
@@ -35,7 +35,12 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # حقن صلاحيات الإنترنت والشبكة المحلية والأجهزة القريبة برمجياً داخل ملف الـ Manifest
+      # 2. الحل الهندسي الحاسم: اختراق مجلد الـ Cache واستبدال استدعاء ملف التشفير المحظور تلقائياً
+      - name: Fix InAppWebView Android Proguard Bug
+        run: |
+          find /home/runner/.pub-cache/ -name "build.gradle" -exec sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' {} +
+
+      # 3. حقن صلاحيات الإنترنت والشبكة المحلية والأجهزة القريبة برمجياً داخل ملف الـ Manifest
       - name: Inject Android Permissions & Network Security
         run: |
           MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
@@ -49,7 +54,7 @@ jobs:
           echo "android.useAndroidX=true" >> gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
 
-      # تجميع ملف الـ APK بنجاح
+      # 4. تجميع ملف الـ APK بنجاح
       - name: Build Release APK
         run: flutter build apk --release --no-shrink --suppress-analytics
 
