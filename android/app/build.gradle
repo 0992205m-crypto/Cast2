@@ -1,46 +1,76 @@
-buildscript {
-    ext.kotlin_version = '1.9.24' 
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.3.2' 
-        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
-    }
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
 }
 
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
+def localProperties = new Properties()
+def localPropertiesFile = rootProject.file('local.properties')
+if (localPropertiesFile.exists()) {
+    localPropertiesFile.withReader('UTF-8') { reader ->
+        localProperties.load(reader)
     }
 }
 
-rootProject.buildDir = '../build'
-subprojects {
-    project.buildDir = "${rootProject.buildDir}/${project.name}"
-}
-subprojects {
-    project.evaluationDependsOn(':app')
+def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
+if (flutterVersionCode == null) {
+    flutterVersionCode = '1'
 }
 
-// 👇 السكربت الصارم لإجبار كافة الحزم الفرعية على التحديث فوراً لمنع خطأ الـ AAR Metadata
-subprojects {    
-    afterEvaluate { project ->
-        if (project.hasProperty('android')) {
-            android {
-                compileSdkVersion 36
-                buildToolsVersion "36.0.0"
-                
-                defaultConfig {
-                    targetSdkVersion 36
-                }
-            }
+def flutterVersionName = localProperties.getProperty('flutter.versionName')
+if (flutterVersionName == null) {
+    flutterVersionName = '1.0'
+}
+
+android {
+    // تم التحديث إلى 34 لحل مشكلة تعارض المكتبات الحديثة في جيت هوب
+    compileSdk 34
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = '1.8'
+    }
+
+    sourceSets {
+        main.java.srcDirs += 'src/main/kotlin'
+    }
+
+    defaultConfig {
+        // ضع اسم حزمة تطبيقك هنا إذا كان مختلفاً
+        applicationId "com.example.myapp"
+        
+        // تم رفعه إلى 23 لضمان تشغيل التطبيقات والمكتبات الحديثة بدون كراش
+        minSdk 23
+        
+        // تم التحديث إلى 34 ليتوافق مع معايير متجر جوجل بلاي وجيت هوب
+        targetSdk 34
+        
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+        
+        // تفعيل ميزة MultiDex لتفادي أخطاء كثرة المكتبات في نسخة الـ Release
+        multiDexEnabled true
+    }
+
+    buildTypes {
+        release {
+            // إعدادات التوقيع الافتراضية لنسخة الـ Release
+            signingConfig signingConfigs.debug
+            minifyEnabled false
+            shrinkResources false
         }
     }
 }
 
-tasks.register("clean", Delete) {
-    delete rootProject.buildDir
+flutter {
+    source rootProject.file('../')
+}
+
+dependencies {
+    // دعم حزم أندرويد المتعددة
+    implementation "androidx.multidex:multidex:2.0.1"
 }
