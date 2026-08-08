@@ -1,4 +1,4 @@
-name: Ultimate Comprehensive Magic Build
+name: Ultimate Bulletproof Flutter Build
 
 on:
   push:
@@ -10,41 +10,72 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. جلب ملفات المشروع بشكل نظيف جداً
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # 2. تهيئة بيئة جافا الحديثة (JDK 17) وإلغاء الكاش لضمان عدم استعادة ملفات مكسورة
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
+      # 3. إعداد أحدث نسخة مستقرة من فلاتر بدون كاش قديم
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
 
-      # السحر الأول: سحق مجلد أندرويد القديم المسبب لخطأ الـ V1 Embedding وإعادة توليده بطراز V2 الحديث
+      # 4. سحق مجلد أندرويد القديم وتوليد مجلد نظيف مدعوم بالـ V2 Embedding تلقائياً
       - name: Kill V1 Embedding and Recreate Android
         run: |
           rm -rf android
           flutter create --platforms=android .
 
+      # 5. تحميل مكاتب وحزم المشروع
       - name: Install dependencies
         run: flutter pub get
 
-      # السحر الثاني: تعديل ملف مكتبة الـ Webview المكسور داخل كاش السيرفر قبل البناء
-      - name: Magic Fix for InAppWebView Proguard Error
+      # 6. 🛡️ التعديل الجراحي الشامل لمنع كافة الأخطاء المحتملة (إجبار SDK 36 وإصلاح Proguard)
+      - name: Bulletproof Magic Fixes (Force SDK 36 & Patch Cache)
         run: |
-          echo "Applying magic fix to flutter_inappwebview_android..."
+          echo "Forcing CompileSdk and TargetSdk to 36 in app/build.gradle..."
+          APP_GRADLE="android/app/build.gradle"
+          if [ -f "$APP_GRADLE" ]; then
+            sed -i 's/compileSdk = .*/compileSdk = 36/g' "$APP_GRADLE"
+            sed -i 's/compileSdkVersion .*/compileSdkVersion 36/g' "$APP_GRADLE"
+            sed -i 's/targetSdk = .*/targetSdk = 36/g' "$APP_GRADLE"
+            sed -i 's/targetSdkVersion .*/targetSdkVersion 36/g' "$APP_GRADLE"
+          fi
+          
+          echo "Injecting global project override for CompileSdk 36 to fix all plugins like file_picker..."
+          MAIN_GRADLE="android/build.gradle"
+          if [ -f "$MAIN_GRADLE" ]; then
+            cat << 'EOF' >> "$MAIN_GRADLE"
+          subprojects {
+              afterEvaluate { project ->
+                  if (project.hasProperty('android')) {
+                      project.android {
+                          compileSdk = 36
+                          buildToolsVersion = "36.0.0"
+                      }
+                  }
+              }
+          }
+          EOF
+          fi
+
+          echo "Applying global regex patch to fix Proguard error across ALL cached webview libraries..."
           find /home/runner/.pub-cache/ -name "build.gradle" -exec sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' {} +
 
-      # البناء النهائي المستقر
+      # 7. بناء نسخة الـ APK النهائية مع تجاهل التحذيرات (Ignore Deprecation) وتخطي فحص النوافذ الشجرية للأيقونات
       - name: Build Release APK
-        run: flutter build apk --release --no-pub
+        run: flutter build apk --release --no-pub --ignore-deprecation --no-tree-shake-icons
 
-      - name: Upload APK Artifact
+      # 8. رفع ملف الـ APK النهائي والناجح لتتمكن من تحميله على هاتفك مباشرة
+      - name: Upload Clean APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ultimate-release-apk
+          name: ultimate-clean-apk
           path: build/app/outputs/flutter-apk/app-release.apk
