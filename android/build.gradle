@@ -1,76 +1,32 @@
-plugins {
-    id "com.android.application"
-    id "kotlin-android"
-    id "dev.flutter.flutter-gradle-plugin"
-}
+buildscript {
+    ext.kotlin_version =  1.8.22 
+    repositories {
+        google()
+        mavenCentral()
+    }
 
-def localProperties = new Properties()
-def localPropertiesFile = rootProject.file('local.properties')
-if (localPropertiesFile.exists()) {
-    localPropertiesFile.withReader('UTF-8') { reader ->
-        localProperties.load(reader)
+    dependencies {
+        // تحديث نظام أندرويد جرادل ليدعم حزم البناء الحديثة
+        classpath  com.android.tools.build:gradle:8.1.0 
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
 
-def flutterVersionCode = localProperties.getProperty('flutter.versionCode')
-if (flutterVersionCode == null) {
-    flutterVersionCode = '1'
-}
-
-def flutterVersionName = localProperties.getProperty('flutter.versionName')
-if (flutterVersionName == null) {
-    flutterVersionName = '1.0'
-}
-
-android {
-    // تم التحديث إلى 34 لحل مشكلة تعارض المكتبات الحديثة في جيت هوب
-    compileSdk 34
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-
-    kotlinOptions {
-        jvmTarget = '1.8'
-    }
-
-    sourceSets {
-        main.java.srcDirs += 'src/main/kotlin'
-    }
-
-    defaultConfig {
-        // ضع اسم حزمة تطبيقك هنا إذا كان مختلفاً
-        applicationId "com.example.myapp"
-        
-        // تم رفعه إلى 23 لضمان تشغيل التطبيقات والمكتبات الحديثة بدون كراش
-        minSdk 23
-        
-        // تم التحديث إلى 34 ليتوافق مع معايير متجر جوجل بلاي وجيت هوب
-        targetSdk 34
-        
-        versionCode flutterVersionCode.toInteger()
-        versionName flutterVersionName
-        
-        // تفعيل ميزة MultiDex لتفادي أخطاء كثرة المكتبات في نسخة الـ Release
-        multiDexEnabled true
-    }
-
-    buildTypes {
-        release {
-            // إعدادات التوقيع الافتراضية لنسخة الـ Release
-            signingConfig signingConfigs.debug
-            minifyEnabled false
-            shrinkResources false
-        }
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
     }
 }
 
-flutter {
-    source rootProject.file('../')
+rootProject.buildDir =  ../build 
+subprojects {
+    project.buildDir = "${rootProject.buildDir}/${project.name}"
+}
+subprojects {
+    project.evaluationDependsOn( :app )
 }
 
-dependencies {
-    // دعم حزم أندرويد المتعددة
-    implementation "androidx.multidex:multidex:2.0.1"
+tasks.register("clean", Delete) {
+    delete rootProject.buildDir
 }
