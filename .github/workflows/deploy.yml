@@ -1,4 +1,4 @@
-name: Ultimate Magic Flutter Build
+name: Ultimate Comprehensive Magic Build
 
 on:
   push:
@@ -24,27 +24,27 @@ jobs:
         with:
           channel: 'stable'
 
+      # السحر الأول: سحق مجلد أندرويد القديم المسبب لخطأ الـ V1 Embedding وإعادة توليده بطراز V2 الحديث
+      - name: Kill V1 Embedding and Recreate Android
+        run: |
+          rm -rf android
+          flutter create --platforms=android .
+
       - name: Install dependencies
         run: flutter pub get
 
-      # ✨ التعويذة السحرية: تعديل ملف المكتبة المكسور مباشرة داخل كاش السيرفر قبل البناء
+      # السحر الثاني: تعديل ملف مكتبة الـ Webview المكسور داخل كاش السيرفر قبل البناء
       - name: Magic Fix for InAppWebView Proguard Error
         run: |
           echo "Applying magic fix to flutter_inappwebview_android..."
-          TARGET_FILE="/home/runner/.pub-cache/hosted/pub.dev/flutter_inappwebview_android-1.1.3/android/build.gradle"
-          if [ -f "$TARGET_FILE" ]; then
-            sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' "$TARGET_FILE"
-            echo "Successfully fixed line 44!"
-          else
-            echo "File not found yet, trying a broader search..."
-            find /home/runner/.pub-cache/ -name "build.gradle" -exec sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' {} +
-          fi
+          find /home/runner/.pub-cache/ -name "build.gradle" -exec sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' {} +
 
+      # البناء النهائي المستقر
       - name: Build Release APK
         run: flutter build apk --release --no-pub
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: magic-release-apk
+          name: ultimate-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
