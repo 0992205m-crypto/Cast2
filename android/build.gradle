@@ -1,12 +1,10 @@
 buildscript {
-    // تم تحديث إصدار الكوتلن ليتوافق مع أندرويد 36 ويحل تحذير KGP السابق
     ext.kotlin_version = '1.9.24' 
     repositories {
         google()
         mavenCentral()
     }
     dependencies {
-        // تم تحديث إصدار الجريدل ليدعم البناء بإصدار SDK 36
         classpath 'com.android.tools.build:gradle:8.3.2' 
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
@@ -16,6 +14,21 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+    }
+    // 👇 هذا الجزء سيعمل على إجبار حزمة file_picker وغيرها على استخدام إصدار 36 تلقائياً
+    subprojects {
+        afterEvaluate { project ->
+            if (project.hasProperty('android')) {
+                project.android {
+                    compileSdkVersion 36
+                    buildToolsVersion "36.0.0"
+                    
+                    defaultConfig {
+                        targetSdkVersion 36
+                    }
+                }
+            }
+        }
     }
 }
 
