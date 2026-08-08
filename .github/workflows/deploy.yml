@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. جلب ملفات المشروع (مع التعديلات اليدوية التي قمت بها)
+      # 1. جلب ملفات المشروع
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -31,18 +31,11 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # 5. تنظيف ملفات الكاش القديمة في أندرويد
-      - name: Clean Android Project
-        run: |
-          cd android
-          ./gradlew clean
-          cd ..
-
-      # 6. البناء النهائي المستقر والتلقائي للنسخة النهائية
+      # 5. البناء النهائي للنسخة المستقرة (سيقوم بتوليد ملفات Gradle وبنائها تلقائياً)
       - name: Build Release APK
         run: flutter build apk --release --ignore-deprecation --no-tree-shake-icons
 
-      # 7. رفع ملف الـ APK النهائي الناجح
+      # 6. رفع ملف الـ APK النهائي الناجح
       - name: Upload Ultimate APK Artifact
         uses: actions/upload-artifact@v4
         with:
