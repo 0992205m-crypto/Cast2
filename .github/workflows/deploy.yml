@@ -26,7 +26,14 @@ jobs:
           flutter-version: '3.44.9'
           channel: 'stable'
 
-      # 1. إجبار المترجم على توليد حزمة أندرويد بحروف صغيرة قياسية للتخلص من تعارض المسميات
+      # 1. التعديل الهندسي الحاسم: إجبار اسم المشروع داخل pubspec.yaml على التحول لحروف صغيرة لمنع سقوط التجميع
+      - name: Fix Pubspec Project Name Case
+        run: |
+          if [ -f pubspec.yaml ]; then
+            sed -i 's/name: .*/name: cast2/g' pubspec.yaml
+          fi
+
+      # 2. توليد بيئة أندرويد قياسية متوافقة تماماً مع الاسم الصغير المقبول للمترجم
       - name: Force Clean & Fresh Android Initialization
         run: |
           rm -rf android
@@ -35,12 +42,12 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # 2. اختراق وتعديل ملف التշفير التالف لحزمة المتصفح في الـ Cache
+      # 3. اختراق وتعديل ملف التشفير التالف لحزمة المتصفح في الـ Cache
       - name: Fix InAppWebView Android Proguard Bug
         run: |
           find /home/runner/.pub-cache/ -name "build.gradle" -exec sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' {} +
 
-      # 3. حقن صلاحيات الإنترنت والأجهزة القريبة داخل الـ Manifest المتولد آلياً
+      # 4. حقن صلاحيات الإنترنت والأجهزة القريبة داخل الـ Manifest المتولد آلياً
       - name: Inject Android Permissions & Network Security
         run: |
           MANIFEST_PATH="android/app/src/main/AndroidManifest.xml"
@@ -54,7 +61,7 @@ jobs:
           echo "android.useAndroidX=true" >> gradle.properties
           echo "android.enableJetifier=true" >> gradle.properties
 
-      # 4. تجميع ملف الـ APK النهائي
+      # 5. تجميع ملف الـ APK النهائي بنجاح
       - name: Build Release APK
         run: flutter build apk --release --no-shrink --suppress-analytics
 
