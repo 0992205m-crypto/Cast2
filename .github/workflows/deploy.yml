@@ -1,4 +1,4 @@
-name: Force Clean Flutter Build
+name: Ultimate Magic Flutter Build
 
 on:
   push:
@@ -10,49 +10,41 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. جلب الملفات بشكل نظيف
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. إعداد جافا 17 بدون كاش
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
-          cache: ''
 
-      # 3. إعداد فلاتر المستقرة بدون كاش
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          cache: false
 
-      # 4. تنظيف عميق للمشروع
-      - name: Deep Clean
+      - name: Install dependencies
+        run: flutter pub get
+
+      # ✨ التعويذة السحرية: تعديل ملف المكتبة المكسور مباشرة داخل كاش السيرفر قبل البناء
+      - name: Magic Fix for InAppWebView Proguard Error
         run: |
-          flutter clean
-          rm -rf .dart_tool
-          rm -rf android
-          
-      # 5. إعادة بناء مجلد أندرويد الحديث
-      - name: Recreate Fresh Android Folder
-        run: flutter create --platforms=android .
+          echo "Applying magic fix to flutter_inappwebview_android..."
+          TARGET_FILE="/home/runner/.pub-cache/hosted/pub.dev/flutter_inappwebview_android-1.1.3/android/build.gradle"
+          if [ -f "$TARGET_FILE" ]; then
+            sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' "$TARGET_FILE"
+            echo "Successfully fixed line 44!"
+          else
+            echo "File not found yet, trying a broader search..."
+            find /home/runner/.pub-cache/ -name "build.gradle" -exec sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' {} +
+          fi
 
-      # 6. ترقية وتحديث كافة المكتبات القديمة تلقائياً (الحل الجذري للمشكلة الحالية)
-      - name: Upgrade dependencies automatically
-        run: |
-          flutter pub get
-          flutter pub upgrade --major-versions
-
-      # 7. بناء التطبيق النهائي
       - name: Build Release APK
         run: flutter build apk --release --no-pub
 
-      # 8. رفع ملف الـ APK لتنزيله على الهاتف
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: fresh-release-apk
+          name: magic-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
