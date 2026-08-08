@@ -1,19 +1,8 @@
-      # Temporary patch step to avoid flutter_inappwebview_android build.gradle evaluation errors in CI
-      - name: Patch flutter_inappwebview_android for CI (temporary)
-        run: |
-          set -e
-          PUB_CACHE="$HOME/.pub-cache/hosted/pub.dev"
-          echo "Looking for flutter_inappwebview_android dirs in $PUB_CACHE..."
-          for d in "$PUB_CACHE"/flutter_inappwebview_android-*; do
-            if [ -d "$d/android" ]; then
-              echo "Patching $d/android/build.gradle ..."
-              cp "$d/android/build.gradle" "$d/android/build.gradle.bak" || true
-              # Comment out plugin id lines that apply org.jetbrains.kotlin.android (temporary)
-              sed -i '/org.jetbrains.kotlin.android/ s/^/\\/\\/ /' "$d/android/build.gradle" || true
-              # Also comment any lines that call 'kotlinOptions' or other plugin-specific configuration if they error
-              sed -i '/kotlinOptions/ s/^/\\/\\/ /' "$d/android/build.gradle" || true
-              # Optional: print head of patched file for debug
-              echo "First 60 lines of patched build.gradle:"
-              sed -n '1,60p' "$d/android/build.gradle" || true
-            fi
-          done
+git clone https://github.com/0992205m-crypto/Cast2.git
+cd Cast2
+git checkout -b ci/patch-inappwebview
+# حرر .github/workflows/deploy.yml وأدخل المقطع أعلاه
+git add .github/workflows/deploy.yml
+git commit -m "ci: patch flutter_inappwebview_android build.gradle temporarily in workflow to avoid CI evaluation error"
+git push origin ci/patch-inappwebview
+# افتح PR وادمجه أو ادفع مباشرة إلى main إذا لديك صلاحية
