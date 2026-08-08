@@ -1,9 +1,9 @@
-import  package:flutter/material.dart ;
-import  package:flutter_inappwebview/flutter_inappwebview.dart ;
-import  package:file_picker/file_picker.dart ;
-import  package:video_player/video_player.dart ;
-import  package:chewie/chewie.dart ;
-import  package:http/http.dart  as http;
+import 'package:flutter/material.dart';
+import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:video_player/video_player.dart';
+import 'package:chewie/chewie.dart';
+import 'package:http/http.dart' as http;
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,7 +17,7 @@ class UltimateCastApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title:  كاست ماستر برو ,
+      title: 'كاست ماستر برو',
       theme: ThemeData.dark().copyWith(
         scaffoldBackgroundColor: const Color(0xFF0F172A),
       ),
@@ -80,13 +80,13 @@ class _MainDashboardState extends State<MainDashboard> {
 
   void _castToReceiverDLNA(String videoUrl) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text( جاري إرسال الفيديو للريسيفر... 📺 )),
+      const SnackBar(content: Text('جاري إرسال الفيديو للريسيفر... 📺')),
     );
   }
 
   void _checkIpPort(String ip, int port, String type) async {
     try {
-      final response = await http.get(Uri.parse( http://$ip:$port/ )).timeout(const Duration(milliseconds: 200));
+      final response = await http.get(Uri.parse('http://$ip:$port/')).timeout(const Duration(milliseconds: 200));
       if (response.statusCode == 200 || response.statusCode == 404) {
         setState(() {
           _foundReceivers.add("$type ($ip)");
@@ -120,7 +120,7 @@ class _MainDashboardState extends State<MainDashboard> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text( الأجهزة المكتشفة 📡 ),
+        title: const Text('الأجهزة المكتشفة 📡'),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -141,7 +141,7 @@ class _MainDashboardState extends State<MainDashboard> {
 
   void _injectSmartMediaSniffer() async {
     if (_webViewController == null) return;
-    String cleanJs = "var origOpen=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(method,url){if(url&&(url.includes( .mp4 )||url.includes( .m3u8 )||url.includes( .mpd )||url.includes( videoplayback ))){window.flutter_inappwebview.callHandler( mediaSnifferHandler ,url);}return origOpen.apply(this,arguments);};function scanTags(){var vids=document.getElementsByTagName( video );for(var i=0;i<vids.length;i++){if(vids[i].src)window.flutter_inappwebview.callHandler( mediaSnifferHandler ,vids[i].src);var sources=vids[i].getElementsByTagName( source );for(var j=0;j<sources.length;j++){if(sources[j].src)window.flutter_inappwebview.callHandler( mediaSnifferHandler ,sources[j].src);}}}setInterval(scanTags,2000);scanTags();";
+    String cleanJs = "var origOpen=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(method,url){if(url&&(url.includes('.mp4')||url.includes('.m3u8')||url.includes('.mpd')||url.includes('videoplayback'))){window.flutter_inappwebview.callHandler('mediaSnifferHandler',url);}return origOpen.apply(this,arguments);};function scanTags(){var vids=document.getElementsByTagName('video');for(var i=0;i<vids.length;i++){if(vids[i].src)window.flutter_inappwebview.callHandler('mediaSnifferHandler',vids[i].src);var sources=vids[i].getElementsByTagName('source');for(var j=0;j<sources.length;j++){if(sources[j].src)window.flutter_inappwebview.callHandler('mediaSnifferHandler',sources[j].src);}}}setInterval(scanTags,2000);scanTags();";
     try {
       await _webViewController!.evaluateJavascript(source: cleanJs);
     } catch (_) {}
@@ -155,7 +155,7 @@ class _MainDashboardState extends State<MainDashboard> {
           color: const Color(0xFF1E293B),
           child: TextField(
             decoration: const InputDecoration(
-              hintText:  أدخل رابط أو ابحث... ,
+              hintText: 'أدخل رابط أو ابحث...',
               prefixIcon: Icon(Icons.search),
               border: InputBorder.none,
             ),
@@ -173,7 +173,7 @@ class _MainDashboardState extends State<MainDashboard> {
             initialUrlRequest: URLRequest(url: WebUri(_currentUrl)),
             onWebViewCreated: (controller) {
               _webViewController = controller;
-              _webViewController!.addJavaScriptHandler(handlerName:  mediaSnifferHandler , callback: (args) {
+              _webViewController!.addJavaScriptHandler(handlerName: 'mediaSnifferHandler', callback: (args) {
                 if (args.isNotEmpty) {
                   String rawUrl = args.first.toString();
                   if (rawUrl.startsWith("http")) {
@@ -199,7 +199,7 @@ class _MainDashboardState extends State<MainDashboard> {
 
   Widget _buildVideosListTab() {
     if (_detectedVideos.isEmpty) {
-      return const Center(child: Text( قم بتشغيل أي فيديو في المتصفح وسيظهر هنا. ));
+      return const Center(child: Text('قم بتشغيل أي فيديو في المتصفح وسيظهر هنا.'));
     }
     final list = _detectedVideos.toList();
     return ListView.builder(
@@ -210,7 +210,7 @@ class _MainDashboardState extends State<MainDashboard> {
           color: const Color(0xFF1E293B),
           child: ListTile(
             leading: const Icon(Icons.video_file, color: Colors.amber),
-            title: Text( فيديو مكتشف رقم ${index + 1} ),
+            title: Text('فيديو مكتشف رقم ${index + 1}'),
             subtitle: Text(list[index], maxLines: 1, overflow: TextOverflow.ellipsis),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -235,7 +235,7 @@ class _MainDashboardState extends State<MainDashboard> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text( كاست ماستر برو 📡 ),
+        title: const Text('كاست ماستر برو 📡'),
         backgroundColor: const Color(0xFF1E293B),
         actions: [
           IconButton(
@@ -269,12 +269,8 @@ class _MainDashboardState extends State<MainDashboard> {
           setState(() { _selectedIndex = index; });
         },
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.web), label:  المتصفح ),
-          BottomNavigationBarItem(icon: Icon(Icons.video_library), label:  الفيديوهات ),
+          BottomNavigationBarItem(icon: Icon(Icons.web), label: 'المتصفح'),
+          BottomNavigationBarItem(icon: Icon(Icons.video_library), label: 'الفيديوهات'),
         ],
       ),
     );
-  }
-}
-
-                                              
