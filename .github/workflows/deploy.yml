@@ -1,10 +1,7 @@
-name: Flutter Build APK
+name: Force Clean Flutter Build
 
 on:
   push:
-    branches:
-      - main
-  pull_request:
     branches:
       - main
 
@@ -13,42 +10,49 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. جلب ملفات المشروع
+      # 1. جلب الملفات بشكل نظيف
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. إعداد جافا 17
+      # 2. إعداد جافا 17 بدون كاش
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
-          cache: 'gradle'
+          cache: ''
 
-      # 3. إعداد فلاتر المستقرة
+      # 3. إعداد فلاتر المستقرة بدون كاش
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
-          cache: true
+          cache: false
 
-      # 4. تحميل مكاتب المشروع الأساسية
-      - name: Install dependencies
-        run: flutter pub get
-
-      # 5. تنظيف وحذف مجلد أندرويد القديم وتوليد مجلد حديث بالكامل (حل مشكلة v1 embedding نهائياً)
-      - name: Recreate Android Folder with V2 Embedding
+      # 4. تنظيف عميق للمشروع
+      - name: Deep Clean
         run: |
+          flutter clean
+          rm -rf .dart_tool
           rm -rf android
-          flutter create --platforms=android .
+          
+      # 5. إعادة بناء مجلد أندرويد الحديث
+      - name: Recreate Fresh Android Folder
+        run: flutter create --platforms=android .
 
-      # 6. بناء نسخة الـ APK النهائية النظيفة
+      # 6. ترقية وتحديث كافة المكتبات القديمة تلقائياً (الحل الجذري للمشكلة الحالية)
+      - name: Upgrade dependencies automatically
+        run: |
+          flutter pub get
+          flutter pub upgrade --major-versions
+
+      # 7. بناء التطبيق النهائي
       - name: Build Release APK
-        run: flutter build apk --release
+        run: flutter build apk --release --no-pub
 
-      # 7. رفع ملف الـ APK النهائي للتحميل
+      # 8. رفع ملف الـ APK لتنزيله على الهاتف
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release-apk
+          name: fresh-release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
