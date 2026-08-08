@@ -27,11 +27,14 @@ jobs:
         with:
           channel: stable
 
-      # 4. التخلص من الهيكلية القديمة وتوليد أندرويد حديث يدعم v2 Embedding
-      - name: Recreate Modern Android Folder
+      # 4. تأكد من وجود مجلد android — لا تمسح مجلد android الملتزم في المستودع
+      - name: Ensure Android folder exists
         run: |
-          rm -rf android
-          flutter create --platforms=android .
+          if [ -d android ]; then
+            echo "android/ exists — skipping flutter create"
+          else
+            flutter create --platforms=android .
+          fi
 
       # 5. تحميل مكاتب المشروع
       - name: Install dependencies
@@ -43,15 +46,34 @@ jobs:
           echo "Fixing proguard-android.txt issue in pub-cache..."
           find /home/runner/.pub-cache/ -name "build.gradle" -exec sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' {} +
 
-      # 7. تهيئة بيئة أندرويد لعام 2026 لفرض إصدارات الـ SDK بدون تعديل ملفات الجافا/الغرادل
-      - name: Configure Android SDK Globally
+      # 7. إعادة تطبيق خصائص Gradle الخاصة بالـ CI لمنع watcher ومشاكل KGP
+      - name: Reapply CI android/gradle.properties
         run: |
-          mkdir -p android/app
-          echo "android.experimental.r8.fullmode=false" >> android/gradle.properties
-          echo "flutter.compileSdkVersion=36" >> android/local.properties
-          echo "flutter.targetSdkVersion=35" >> android/local.properties
+          mkdir -p android
+          cat > android/gradle.properties <<'EOF'
+# Gradle properties for CI
+# Disable Gradle file watching to avoid "Already watching path" errors in CI
+org.gradle.vfs.watch=false
 
-      # 8. البناء النهائي التلقائي المستقر وتجاوز تعارض الكاش والـ Watcher والمكتبات القديمة
+# Override legacy Kotlin DSL flags to avoid flutter_inappwebview plugin build error on CI
+# The plugin fails when android.builtInKotlin=true and android.newDsl=false are present (or injected).
+# Forcing builtInKotlin=false and newDsl=true prevents that failure. If you later migrate to built-in
+# Kotlin support, remove or change these flags accordingly.
+android.builtInKotlin=false
+android.newDsl=true
+EOF
+
+      # 8. خطوة تصحيحية: فحص تفصيلي لأخطاء AAR للمكتبة file_picker (لن تفشل المهمة عند الفشل)
+      - name: Debug AAR metadata for file_picker
+        run: |
+          if [ -d android ]; then
+            cd android
+            ./gradlew :file_picker:checkReleaseAarMetadata --stacktrace --info || true
+          else
+            echo "android/ not present"
+          fi
+
+      # 9. البناء النهائي التلقائي المستقر وتجاوز تعارض الكاش والـ Watcher والمكتبات القديمة
       - name: Build Release APK
         env:
           FLUTTER_SUPPRESS_KGP_WARNINGS: "true"
@@ -60,7 +82,7 @@ jobs:
         run: |
           flutter build apk --release --ignore-deprecation --no-tree-shake-icons --no-pub --no-track-widget-creation
 
-      # 9. رفع ملف الـ APK النهائي الجاهز للتحميل
+      # 10. رفع ملف الـ APK النهائي الجاهز للتحميل
       - name: Upload Ultimate APK Artifact
         uses: actions/upload-artifact@v4
         with:
