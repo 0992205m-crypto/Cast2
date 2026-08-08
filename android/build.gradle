@@ -15,21 +15,6 @@ allprojects {
         google()
         mavenCentral()
     }
-    // 👇 هذا الجزء سيعمل على إجبار حزمة file_picker وغيرها على استخدام إصدار 36 تلقائياً
-    subprojects {
-        afterEvaluate { project ->
-            if (project.hasProperty('android')) {
-                project.android {
-                    compileSdkVersion 36
-                    buildToolsVersion "36.0.0"
-                    
-                    defaultConfig {
-                        targetSdkVersion 36
-                    }
-                }
-            }
-        }
-    }
 }
 
 rootProject.buildDir = '../build'
@@ -38,6 +23,22 @@ subprojects {
 }
 subprojects {
     project.evaluationDependsOn(':app')
+}
+
+// 👇 السكربت الصارم لإجبار كافة الحزم الفرعية على التحديث فوراً لمنع خطأ الـ AAR Metadata
+subprojects {    
+    afterEvaluate { project ->
+        if (project.hasProperty('android')) {
+            android {
+                compileSdkVersion 36
+                buildToolsVersion "36.0.0"
+                
+                defaultConfig {
+                    targetSdkVersion 36
+                }
+            }
+        }
+    }
 }
 
 tasks.register("clean", Delete) {
