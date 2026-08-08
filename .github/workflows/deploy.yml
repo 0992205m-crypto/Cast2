@@ -37,23 +37,23 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
-      # 6. إصلاح ملفات الـ Proguard المكسورة داخل الكاش لكل المكتبات (مثل WebView)
+      # 6. إصلاح ملفات الـ Proguard المكسورة داخل الكاش لكل المكتبات
       - name: Fix Proguard Files in Pub Cache
         run: |
           echo "Fixing proguard-android.txt issue in pub-cache..."
           find /home/runner/.pub-cache/ -name "build.gradle" -exec sed -i 's/proguard-android.txt/proguard-android-optimize.txt/g' {} +
 
-      # 7. فرض إصدار الـ SDK المطلوب للمتجر (34) برمجياً على المجلد الجديد والمكتبات
-      - name: Force SDK 34 Configurations
+      # 7. فرض إصدار الـ SDK 36 لحل تعارض مكتبة ExoPlayer الحديثة
+      - name: Force SDK 36 Configurations
         run: |
           cat << EOF >> android/build.gradle
           subprojects {
               afterEvaluate { project ->
                   if (project.hasProperty('android')) {
                       project.android {
-                          compileSdk = 34
+                          compileSdk = 36
                           defaultConfig {
-                              targetSdk = 34
+                              targetSdk = 35
                           }
                       }
                   }
